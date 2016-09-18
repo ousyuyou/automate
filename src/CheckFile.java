@@ -25,25 +25,6 @@ public class CheckFile {
 	 */
 	public static void main(String[] args) throws IOException{
 		// TODO Auto-generated method stub
-//		updateSvnFromBat("E:/updateSvnfile.bat");
-//		updateSvn("E:\\svn\\NTTData\\30_内部設計\\25_修正影響調査");
-		
-//		ArrayList<String> arrTarget = readTargetFromExcel("E:/svn/NTTData/00_管理/05_進捗管理/10_残案件対応/案件状況一覧.xlsx","B","L=未リリース&CZ=OK&BQX=ok");
-//		for(String str:arrTarget){
-//			System.out.println(str);
-//		}
-//		
-//		HashMap<String, Integer> map =getColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
-//		for(String str:map.keySet()){
-//			System.setOut(new PrintStream(new FileOutputStream("e:\\out.txt",true)));
-//			System.out.println(str + " " + String.valueOf(map.get(str)));
-		
-//		ArrayList<String> arr = new ArrayList<String>();
-//		File file = new File("E:/svn/NTTData/30_内部設計/25_修正影響調査");
-//		listFiles(file, arr);
-//		for(String str:arr){
-//			System.out.println(str);
-//		}
 		
 		ArrayList<String> out = checkFileExistsFromExcel(CHANGE_LIST_FILE,"B","L=未リリース",RESULT_OUTPUT_PATH);
 //		System.out.println("research file does not exists");
