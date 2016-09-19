@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,16 +20,23 @@ public class CheckFile {
 	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	
-	private static final String CHANGE_LIST_FILE = "E:/svn/XXX/00_管理/05_進捗管理/10_残案件対応/案件状況一覧.xlsx";
-	private static final String RESULT_OUTPUT_PATH = "E:/svn/XXX/30_内部設計/25_修正影響調査";
+	private static final String CHANGE_LIST_FILE = "E:/svn/NTTData/00_管理/05_進捗管理/10_残案件対応/案件状況一覧.xlsx";
+	private static final String RESULT_OUTPUT_PATH = "E:/svn/NTTData/30_内部設計/25_修正影響調査";
+	static final String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
+		"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException{
 		// TODO Auto-generated method stub
 		
+//		setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
+//		for(String str:map.keySet()){
+//			System.setOut(new PrintStream(new FileOutputStream("e:\\out.txt",true)));
+//			System.out.println(str + " " + String.valueOf(map.get(str)));
+//		}
+		
 		ArrayList<String> out = checkFileExistsFromExcel(CHANGE_LIST_FILE,"B","L=未リリース",RESULT_OUTPUT_PATH);
-//		System.out.println("research file does not exists");
 		for(String str:out){
 			System.out.println(str);
 		}
@@ -171,6 +180,7 @@ public class CheckFile {
 	        		hashPattern.put(split[0], split[1]);
 	        	}
 	        }
+			setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
 
 	        int destColNumber = getColunIndexFromAlpha(destColAlpha); 
 	        for(int i = 0; i <= sheet.getLastRowNum();i++){
@@ -235,11 +245,10 @@ public class CheckFile {
 	 * @return
 	 */
 	private static int getColunIndexFromAlpha(String alpha){
-		map = getColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
 		return map.get(alpha.toUpperCase()).intValue();
 	}
 
-	private static HashMap<String,Integer> getColumnNameIndex(int digit){
+	private static HashMap<String,Integer> setColumnNameIndex_bak(int digit){
 		String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
 				"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 		int index = 0;
@@ -277,5 +286,35 @@ public class CheckFile {
 		}
 		
 		return map;
+	}
+	
+	static int index = 0;
+	private static String[] setColumnNameIndex(int digit,HashMap<String,Integer> out,int digitLoop){
+		ArrayList<String> arrayConnect = new ArrayList<String>();
+		
+		if(digitLoop>1){
+			String[] lower = setColumnNameIndex(digit, out,digitLoop-1);
+			StringBuffer buf = new StringBuffer();
+			for(String alpha:alphabet){
+				buf.append(alpha);
+				for(String strRtn:lower){
+					buf.append(strRtn);
+					out.put(buf.toString(), Integer.valueOf(index++));
+					arrayConnect.add(buf.toString());
+					buf.delete(alpha.length(), buf.capacity()-1);
+				}
+				//clear
+				buf.delete(0, buf.capacity()-1);
+			}
+			String[] strRtn = new String[arrayConnect.size()];
+			arrayConnect.toArray(strRtn);
+			arrayConnect = null;
+			return strRtn;
+		} else {
+			for(String str:alphabet){
+				out.put(str, Integer.valueOf(index++));
+			}
+			return alphabet;
+		}
 	}
 }
