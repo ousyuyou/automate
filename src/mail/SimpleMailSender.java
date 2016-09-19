@@ -1,0 +1,99 @@
+package mail;
+
+import java.util.Date;   
+import java.util.Properties;  
+import javax.mail.Address;   
+import javax.mail.BodyPart;   
+import javax.mail.Message;   
+import javax.mail.MessagingException;   
+import javax.mail.Multipart;   
+import javax.mail.Session;   
+import javax.mail.Transport;   
+import javax.mail.internet.InternetAddress;   
+import javax.mail.internet.MimeBodyPart;   
+import javax.mail.internet.MimeMessage;   
+import javax.mail.internet.MimeMultipart;   
+  
+/**  
+* simple mail sender
+*/   
+public class SimpleMailSender  {   
+/**  
+  * text sender  
+  * @param mailInfo   
+  */   
+	public static void main(String[] args){  
+	  MailSenderInfo mailInfo = new MailSenderInfo();   
+      mailInfo.setMailServerHost("host");   
+      mailInfo.setMailServerPort("25");   
+      mailInfo.setValidate(true);   
+      mailInfo.setUserName("xxx@xxx.com");   
+      mailInfo.setPassword("xxxxx");   
+      mailInfo.setFromAddress("xxx@xxx.com");
+      mailInfo.setToAddress("xxx@xxx.com");
+      mailInfo.setSubject("test mail");
+      mailInfo.setContent("test");
+      SimpleMailSender sms = new SimpleMailSender();
+	  sms.sendTextMail(mailInfo);//send text
+//		  sms.sendHtmlMail(mailInfo);//send html
+	}
+	
+    public boolean sendTextMail(MailSenderInfo mailInfo) {   
+      MyAuthenticator authenticator = null;   
+      Properties pro = mailInfo.getProperties();  
+      if (mailInfo.isValidate()) {   
+    	  authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());   
+      }  
+
+      Session sendMailSession = Session.getDefaultInstance(pro,authenticator);   
+      try {   
+	      Message mailMessage = new MimeMessage(sendMailSession);   
+	      Address from = new InternetAddress(mailInfo.getFromAddress());
+	      mailMessage.setFrom(from);
+	      Address to = new InternetAddress(mailInfo.getToAddress());
+	      mailMessage.setRecipient(Message.RecipientType.TO,to);   
+	      mailMessage.setSubject(mailInfo.getSubject());   
+	      mailMessage.setSentDate(new Date());
+	      String mailContent = mailInfo.getContent();   
+	      mailMessage.setText(mailContent);   
+	      Transport.send(mailMessage);  
+	      return true;
+      } catch (MessagingException ex) {   
+          ex.printStackTrace();
+      }   
+      return false;   
+    }   
+      
+    /**  
+      * html sender  
+      * @param mailInfo   
+      */   
+    public static boolean sendHtmlMail(MailSenderInfo mailInfo){   
+      MyAuthenticator authenticator = null;  
+      Properties pro = mailInfo.getProperties();  
+      if (mailInfo.isValidate()) {   
+    	  authenticator = new MyAuthenticator(mailInfo.getUserName(), mailInfo.getPassword());  
+      }   
+      
+      Session sendMailSession = Session.getDefaultInstance(pro,authenticator);   
+      try {   
+	      Message mailMessage = new MimeMessage(sendMailSession);   
+	      Address from = new InternetAddress(mailInfo.getFromAddress());   
+	      mailMessage.setFrom(from);   
+	      Address to = new InternetAddress(mailInfo.getToAddress());   
+	      mailMessage.setRecipient(Message.RecipientType.TO,to);   
+	      mailMessage.setSubject(mailInfo.getSubject());   
+	      mailMessage.setSentDate(new Date());   
+	      Multipart mainPart = new MimeMultipart();   
+	      BodyPart html = new MimeBodyPart();   
+	      html.setContent(mailInfo.getContent(), "text/html; charset=utf-8");   
+	      mainPart.addBodyPart(html);   
+	      mailMessage.setContent(mainPart);   
+	      Transport.send(mailMessage);   
+	      return true;   
+      } catch (MessagingException ex) {   
+          ex.printStackTrace();   
+      }   
+      return false;   
+    }   
+}
