@@ -20,8 +20,8 @@ public class CheckFile {
 	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	
-	private static final String CHANGE_LIST_FILE = "E:/svn/NTTData/00_管理/05_進捗管理/10_残案件対応/案件状況一覧.xlsx";
-	private static final String RESULT_OUTPUT_PATH = "E:/svn/NTTData/30_内部設計/25_修正影響調査";
+	private static final String CHANGE_LIST_FILE = "E:/svn/xxx/00_管理/05_進捗管理/10_残案件対応/案件状況一覧.xlsx";
+	private static final String RESULT_OUTPUT_PATH = "E:/svn/xxx/30_内部設計/25_修正影響調査";
 	static final String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
 		"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 	/**
