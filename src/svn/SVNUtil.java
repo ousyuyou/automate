@@ -11,7 +11,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
-import org.tmatesoft.svn.core.SVNErrorMessage;
+import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNLogEntryPath;
@@ -25,25 +25,39 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
   
 public class SVNUtil {
 	private static Logger logger = Logger.getLogger(SVNUtil.class);
 	private static String svnRootPath = "";
-	private static File CERT_FILE_PATH = new File("E:/cert/");
-
+	private static File CERT_FILE_PATH = new File("e:/cert/");
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws SVNException{
 		// TODO Auto-generated method stub
-		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
+		ConfigFile config = new ConfigFile(new File("e:/cert/config"));
 		String configListFile = config.getPropertyValue("check", "change_list_file");
 		svnRootPath = config.getPropertyValue("global", "svn_root_path");
 		
 		getHistory(configListFile);
+//		checkOutFromSVN();
 	}
 	
+	 public static void checkOutFromSVN(String svnUrl,String localFile) throws SVNException {
+	        System.setProperty("javax.net.debug", "all");
+	        System.setProperty("svnkit.http.sslProtocols", "SSLv3");
+//	        setupLibrary();
+	        
+	        SVNURL url = SVNURL.parseURIEncoded(svnUrl);
+	        SVNClientManager clientManager = authSvn(svnRootPath,CERT_FILE_PATH);
+	        
+	        SVNUpdateClient updateClient = clientManager.getUpdateClient();
+	        updateClient.setIgnoreExternals(false);
+	        long workVersion = updateClient.doCheckout(url, new File(localFile),
+	                SVNRevision.HEAD, SVNRevision.HEAD, SVNDepth.FILES, false);
+	}
 	/**
 	 * init svn
 	 */
@@ -67,18 +81,17 @@ public class SVNUtil {
             logger.error(e.getErrorMessage(), e);  
             return null;  
         }  
-        
-//        System.setProperty("svnkit.http.sslProtocols", "SSLv3");
+        //from jre 7,SSLv3 is not supported;when use,change the java.security setting
+        System.setProperty("svnkit.http.sslProtocols", "SSLv3");
 //        System.setProperty("javax.net.debug", "all");
-//        System.setProperty("https.protocols", "SSLv3,SSLv2Hello");
-//        System.setProperty("javax.net.ssl.trustStore", "E:/cert/ca.crt");
+        System.setProperty("https.protocols", "SSLv3,SSLv2Hello");
+//        System.setProperty("javax.net.ssl.trustStore", "d:/cert/ca.crt");
         
         // auth
-        ISVNAuthenticationManager authManager =  
-        SVNWCUtil.createDefaultAuthenticationManager(certSavePath);
-        
-//        ISVNAuthenticationManager authManager =  
-//            SVNWCUtil.createDefaultAuthenticationManager(username,password);
+        ISVNAuthenticationManager authManager = 
+        		SVNWCUtil.createDefaultAuthenticationManager(certSavePath);
+        //first time,this is necessary
+//        SVNWCUtil.createDefaultAuthenticationManager(certSavePath, "username", "password", true);
         
         repository.setAuthenticationManager(authManager);
         
