@@ -2,9 +2,10 @@ package svn;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -281,7 +282,7 @@ public class ConfigFile {
         BufferedReader reader = null;
         Collection lines = new ArrayList();
         try {
-            reader = new BufferedReader(new FileReader(myFile));
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(myFile), "sjis"));
             String line;
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
