@@ -51,12 +51,12 @@ public class SimpleMailSender  {
 	      Address from = new InternetAddress(mailInfo.getFromAddress());
 	      mailMessage.setFrom(from);
 	      Address to = new InternetAddress(mailInfo.getToAddress());
-	      mailMessage.setRecipient(Message.RecipientType.TO,to);   
-	      mailMessage.setSubject(mailInfo.getSubject());   
+	      mailMessage.setRecipient(Message.RecipientType.TO,to);
+	      mailMessage.setSubject(mailInfo.getSubject());
 	      mailMessage.setSentDate(new Date());
-	      String mailContent = mailInfo.getContent();   
-	      mailMessage.setText(mailContent);   
-	      Transport.send(mailMessage);  
+	      String mailContent = mailInfo.getContent();
+	      mailMessage.setText(mailContent);
+	      Transport.send(mailMessage);
 	      return true;
       } catch (MessagingException ex) {   
           ex.printStackTrace();
