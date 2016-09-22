@@ -29,7 +29,7 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
   
 public class SVNUtil {
 	private static Logger logger = Logger.getLogger(SVNUtil.class);
-	private static String svnRootPath = "https://xxx";
+	private static String svnRootPath = "";
 	private static File CERT_FILE_PATH = new File("E:/cert/");
 
 	/**
@@ -37,8 +37,13 @@ public class SVNUtil {
 	 */
 	public static void main(String[] args) throws SVNException{
 		// TODO Auto-generated method stub
-		getHistory("E:/svn/xxx");
+		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
+		String configListFile = config.getPropertyValue("check", "change_list_file");
+		svnRootPath = config.getPropertyValue("global", "svn_root_path");
+		
+		getHistory(configListFile);
 	}
+	
 	/**
 	 * init svn
 	 */

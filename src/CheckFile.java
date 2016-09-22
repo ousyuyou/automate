@@ -12,16 +12,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
+import svn.ConfigFile;;
 
 public class CheckFile {
-	private static final String SVN_INSTALL_PATH = "C:/Program Files/TortoiseSVN/bin/TortoiseProc.exe";
 	private static final String SPACE = " ";
 	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	
-	private static final String CHANGE_LIST_FILE = "E:/svn/xxx/00_ä«óù/05_êiíªä«óù/10_écàƒåèëŒâû/àƒåèèÛãµàÍóó.xlsx";
-	private static final String RESULT_OUTPUT_PATH = "E:/svn/xxx/30_ì‡ïîê›åv/25_èCê≥âeãøí≤ç∏";
 	static final String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
 		"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 	/**
@@ -36,7 +33,10 @@ public class CheckFile {
 //			System.out.println(str + " " + String.valueOf(map.get(str)));
 //		}
 		
-		ArrayList<String> out = checkFileExistsFromExcel(CHANGE_LIST_FILE,"B","P=Åõ",RESULT_OUTPUT_PATH);
+		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
+		String configListFile = config.getPropertyValue("check", "change_list_file");
+		String resultPath = config.getPropertyValue("check", "result_out_path");
+		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=Åõ",resultPath);
 		for(String str:out){
 			System.out.println(str);
 		}
@@ -126,13 +126,14 @@ public class CheckFile {
 	 */
 	public static void updateSvn(String destDirectory){
 		StringBuffer strBufClean = new StringBuffer();
-
+		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
+		String svnInstallPath = config.getPropertyValue("global", "svn_install_path");
 		//clean
 		strBufClean.append("/command:cleanup /path:");
 		strBufClean.append(destDirectory);
 		strBufClean.append(SPACE);
 		strBufClean.append("/notempfile /noui /closeonend:3");
-		String[] commandClean = new String[]{SVN_INSTALL_PATH, strBufClean.toString()};
+		String[] commandClean = new String[]{svnInstallPath, strBufClean.toString()};
 
 		//update
 		StringBuffer strBufUpdate = new StringBuffer();
@@ -140,7 +141,7 @@ public class CheckFile {
 		strBufUpdate.append(destDirectory);
 		strBufUpdate.append(SPACE);
 		strBufUpdate.append("/notempfile /closeonend:3");
-		String[] commandUpdate = new String[]{SVN_INSTALL_PATH,strBufUpdate.toString()};
+		String[] commandUpdate = new String[]{svnInstallPath,strBufUpdate.toString()};
 		
 		try{
 			Runtime.getRuntime().exec(commandClean);
