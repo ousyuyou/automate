@@ -1,61 +1,122 @@
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import svn.ConfigFile;;
-
+import svn.ConfigFile;
+import util.ExcelUtil;
+import util.FileUtil;
 public class CheckFile {
 	private static final String SPACE = " ";
-	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
-	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
+	private static String CONFIG_FILE_PATH = "E:/cert/config";
+	private static final String ISSUE_ID = "ISSUE_ID";
+	private static final String ISSUE_REVIEWER = "ISSUE_REVIEWER";
+	private static final String ISSUE_OWNER_ID = "ISSUE_OWNER_ID";
+	private static final String ISSUE_STATUS = "ISSUE_STATUS";
+	private static final String RESEARCH_STATUS = "RESEARCH_STATUS";
 	
-	static final String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
-		"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException{
 		// TODO Auto-generated method stub
 		
-//		setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
-//		for(String str:map.keySet()){
-//			System.setOut(new PrintStream(new FileOutputStream("e:\\out.txt",true)));
-//			System.out.println(str + " " + String.valueOf(map.get(str)));
-//		}
-		
-		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
-		String configListFile = config.getPropertyValue("check", "change_list_file");
-		String resultPath = config.getPropertyValue("check", "result_out_path");
-		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=Åõ",resultPath);
-		for(String str:out){
-			System.out.println(str);
-		}
-		
+		getIssueBaseInfo();
 	}
 	
 	/**
 	 * 
-	 * @param fromExcel
-	 * @param destColNumber
-	 * @param filterPattern:just support
-	 * @param destDirectory
+	 * @throws IOException
 	 */
-	public static ArrayList<String> checkFileExistsFromExcel(String fromExcel,String destColAlpha,String filterPattern,String destDirectory) throws IOException{
-		//update svn
-		updateSvn(destDirectory);
-		ArrayList<String> out = new ArrayList<String>();
+	public static void checkResearchFile() throws IOException{
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+		String configListFile = config.getPropertyValue("check", "issue_list_file");
+		String resultPath = config.getPropertyValue("check", "result_out_path");
 		
-		ArrayList<String> arrTarget = readTargetFromExcel(fromExcel,destColAlpha,filterPattern);
+		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=Åõ",resultPath);
+		for(String str:out){
+			System.out.println(str);
+		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public static Issue[] getIssueBaseInfo() throws IOException{
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+		String configListFile = config.getPropertyValue("check", "issue_list_file");
+		
+		String[] strColumns = new String[]{"B","E","K","O","P"};
+		Map<String,String> columnNameMap = new HashMap<String, String>();
+		columnNameMap.put(ISSUE_ID, "B");
+		columnNameMap.put(ISSUE_REVIEWER, "E");
+		columnNameMap.put(ISSUE_STATUS, "K");
+		columnNameMap.put(ISSUE_OWNER_ID, "O");
+		columnNameMap.put(RESEARCH_STATUS, "P");
+		
+		Issue[] issues = readIssuesFromConfig(configListFile,strColumns,"L=ñ¢ÉäÉäÅ[ÉX",columnNameMap);
+		
+		for(Issue issue:issues){
+			System.out.println(issue.getId()+ " "+issue.getReviewer()+ " "+issue.getStatus() + " "+issue.getResearchStatus()+" "+issue.getOwner());
+		}
+		return issues;
+	}
+	
+	private static IssueModule[] readIssueModeleFromConfig(String fromExcel,String destColAlpha[],Issue[] issues,Map<String,String> columnNameMap) throws IOException{
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,1,destColAlpha,"");//sheet 1
+		
+		IssueModule[] issueModels = new IssueModule[mapTarget.length];
+//		for(int i = 0 ; i<mapTarget.length;i++){
+//			issues[i] = new Issue();
+//			issues[i].setId(mapTarget[i].get(columnNameMap.get(ISSUE_ID)));
+//			issues[i].setReviewer(mapTarget[i].get(columnNameMap.get(ISSUE_REVIEWER)));
+//			issues[i].setOwner(mapTarget[i].get(columnNameMap.get(ISSUE_OWNER_ID)));
+//			issues[i].setStatus(mapTarget[i].get(columnNameMap.get(ISSUE_STATUS)));
+//			issues[i].setResearchStatus(mapTarget[i].get(columnNameMap.get(RESEARCH_STATUS)));
+//		}
+		
+		return issueModels;
+	}
+	
+	private static Issue[] readIssuesFromConfig(String fromExcel,String destColAlpha[],String filterPattern,Map<String,String> columnNameMap) throws IOException{
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,0,destColAlpha,filterPattern);//sheet 0
+		
+		Issue[] issues = new Issue[mapTarget.length];
+		for(int i = 0 ; i<mapTarget.length;i++){
+			issues[i] = new Issue();
+			issues[i].setId(mapTarget[i].get(columnNameMap.get(ISSUE_ID)));
+			issues[i].setReviewer(mapTarget[i].get(columnNameMap.get(ISSUE_REVIEWER)));
+			issues[i].setOwner(mapTarget[i].get(columnNameMap.get(ISSUE_OWNER_ID)));
+			issues[i].setStatus(mapTarget[i].get(columnNameMap.get(ISSUE_STATUS)));
+			issues[i].setResearchStatus(mapTarget[i].get(columnNameMap.get(RESEARCH_STATUS)));
+		}
+		
+		return issues;
+	}
+	
+	/**
+	 * 
+	 * @param fromExcel:list excel file path;the manager file's path
+	 * @param destColAlpha A,B,C....
+	 * @param filterPattern:just support;for example C=OK&&D=100
+	 * @param destDirectory result files's directory
+	 */
+	private static ArrayList<String> checkFileExistsFromExcel(String fromExcel,String destColAlpha,String filterPattern,String destDirectory) throws IOException{
+		//update svn
+		updateSvn(fromExcel);
+		updateSvn(destDirectory);
+		
+		ArrayList<String> out = new ArrayList<String>();
+		Map[] mapTarget = ExcelUtil.readContentFromExcel(fromExcel,0,destColAlpha,filterPattern);//sheet 0
+		String[] strTarget = new String[mapTarget.length];
+		
+		for(int i = 0 ;i < mapTarget.length;i++){
+			strTarget[i] = (String)mapTarget[i].get(destColAlpha);
+		}
 //		System.out.println("Target from");
 //		for(String str:arrTarget){
 //			System.out.println(str);
@@ -63,15 +124,12 @@ public class CheckFile {
 //		System.out.println("Target end");
 		
 		ArrayList<String> arrResult = new ArrayList<String>();
-		listFiles(new File(destDirectory), arrResult);
-		
-		Collections.sort(arrTarget);
-		Collections.sort(arrResult);
-		
-		String[] strTarget = new String[arrTarget.size()]; 
-		arrTarget.toArray(strTarget);
+		FileUtil.listFiles(new File(destDirectory), arrResult);
 		String[] strResult = new String[arrResult.size()]; 
 		arrResult.toArray(strResult);
+		
+		Arrays.sort(strTarget);
+		Arrays.sort(strResult);
 		
 		int startIndex=0;
 		for(int i = 0; i < strTarget.length;i++){
@@ -99,40 +157,20 @@ public class CheckFile {
 		array[i] = array[j];
 		array[j] = tmp;
 	}
-	
-	/**
-	 * list all file
-	 * @param f
-	 * @param arrayOut
-	 */
-	public static void listFiles(File f,ArrayList<String> arrayOut){
-		 if(f!=null){
-	            if(f.isDirectory()){
-	                File[] fileArray=f.listFiles();
-	                if(fileArray!=null){
-	                    for (int i = 0; i < fileArray.length; i++) {
-	                    	listFiles(fileArray[i],arrayOut);
-	                    }
-	                }
-	            } else {
-	            	arrayOut.add(f.getName());
-	            }
-	     }
-	}
 
 	/**
 	 * update svn
 	 * @param destDirectory
 	 */
-	public static void updateSvn(String destDirectory){
+	private static void updateSvn(String destDirectory){
 		StringBuffer strBufClean = new StringBuffer();
-		ConfigFile config = new ConfigFile(new File("E:/cert/config"));
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
 		String svnInstallPath = config.getPropertyValue("global", "svn_install_path");
 		//clean
 		strBufClean.append("/command:cleanup /path:");
 		strBufClean.append(destDirectory);
 		strBufClean.append(SPACE);
-		strBufClean.append("/notempfile /noui /closeonend:3");
+		strBufClean.append("/notempfile /noui /closeonend:1");
 		String[] commandClean = new String[]{svnInstallPath, strBufClean.toString()};
 
 		//update
@@ -140,19 +178,21 @@ public class CheckFile {
 		strBufUpdate.append("/command:update /path:");
 		strBufUpdate.append(destDirectory);
 		strBufUpdate.append(SPACE);
-		strBufUpdate.append("/notempfile /closeonend:3");
+		strBufUpdate.append("/notempfile /closeonend:1");
 		String[] commandUpdate = new String[]{svnInstallPath,strBufUpdate.toString()};
 		
 		try{
-			Runtime.getRuntime().exec(commandClean);
-			Runtime.getRuntime().exec(commandUpdate);
+			java.lang.Process process1 = Runtime.getRuntime().exec(commandClean);
+			process1.waitFor();
+			java.lang.Process process2 = Runtime.getRuntime().exec(commandUpdate);
+			process2.waitFor();
 		}catch (Exception e){
 			e.printStackTrace();
 		}
 		
 	}
 	
-	public static void updateSvnFromBat(String batFile){
+	private static void updateSvnFromBat(String batFile){
 		String command[]  = new String[]{batFile};
 		try{
 			Runtime.getRuntime().exec(command);
@@ -161,161 +201,5 @@ public class CheckFile {
 			e.printStackTrace();
 		}
 	}
-	
-	private static ArrayList<String> readTargetFromExcel(String fromExcel,String destColAlpha,String filterPattern) throws IOException{
-		ArrayList<String> arrayTarget = new ArrayList<String>();
-		FileInputStream fileIn = null;
-		
-		try{
-			fileIn = new FileInputStream(fromExcel);
-	        Workbook wb = new XSSFWorkbook(new FileInputStream(fromExcel));
-	        Sheet sheet = wb.getSheetAt(0);
-	        
-	        //parse filterPattern,just support &
-	        String[] strPatterns = filterPattern.split("&");
-	        HashMap<String, String> hashPattern = new HashMap<String, String>();
-	        
-	        for(String str:strPatterns){
-	        	String[] split = str.split("=");
-	        	if(split.length == 2){
-	        		hashPattern.put(split[0], split[1]);
-	        	}
-	        }
-			setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
 
-	        int destColNumber = getColunIndexFromAlpha(destColAlpha); 
-	        for(int i = 0; i <= sheet.getLastRowNum();i++){
-	        	Row row = sheet.getRow(i);
-	        	boolean matchOk = true;
-	        	
-	        	for(String alphaIndex:hashPattern.keySet()){//filter by pattern
-	        		String value = "";
-	        		int columnIndex = getColunIndexFromAlpha(alphaIndex);
-	        		//bug?
-	        		if(row.getCell(columnIndex) == null){
-	        			//default set to space
-	        			value = "";
-	        		}else {
-			   			switch(row.getCell(columnIndex).getCellType()){
-		            		case Cell.CELL_TYPE_NUMERIC:
-		            			value = String.valueOf(row.getCell(columnIndex).getNumericCellValue()).trim();
-		            			break;
-		            		default:
-		            			value = row.getCell(columnIndex).getStringCellValue().trim();
-		            			break;
-			   			}
-	        		}
-
-	        		if(!matchValue(hashPattern.get(alphaIndex),value)){
-	        			matchOk = false;
-	        			break;
-	        		}
-	        	}
-	        	
-	        	if(matchOk){
-	        		String target = row.getCell(destColNumber).getStringCellValue().trim();
-	        		arrayTarget.add(target);
-	        	}
-	        }
-		} finally{
-			if(fileIn!=null){
-				fileIn.close();
-			}
-		}
-		
-		return arrayTarget;
-		
-	}
-	
-	/**
-	 * compare without upper or lower
-	 * @param patternValue
-	 * @param cellValue
-	 * @return
-	 */
-	private static boolean matchValue(String patternValue,String cellValue){
-		if(patternValue == cellValue || patternValue.toLowerCase().equals(cellValue.toLowerCase())){
-			return true;
-		}
-		return false;
-	}
-	
-	/**
-	 * get excel column index from column alpha name 
-	 * @param alpha
-	 * @return
-	 */
-	private static int getColunIndexFromAlpha(String alpha){
-		return map.get(alpha.toUpperCase()).intValue();
-	}
-
-	private static HashMap<String,Integer> setColumnNameIndex_bak(int digit){
-		String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M",
-				"N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
-		int index = 0;
-		HashMap<String,Integer> map = new HashMap<String, Integer>();
-		ArrayList<String> arrayConnect = new ArrayList<String>();
-		ArrayList<String> arrayCreate = new ArrayList<String>();
-		
-		//init to ""
-		arrayConnect.add("");
-		
-//		for(String alpha:alphabet){
-//			map.put(alpha, Integer.valueOf(index++));
-//			arrayConnect.add(alpha);
-//		}
-		
-		int digit_loop = 0;
-		StringBuffer buf = new StringBuffer();
-		while(digit_loop<digit){
-			for(String alpha:alphabet){//A~Z
-				buf.append(alpha);
-				for(String alphaArr:arrayConnect){//first time is ""
-					buf.append(alphaArr);
-					map.put(buf.toString(), Integer.valueOf(index++));
-					arrayCreate.add(buf.toString());
-					buf.delete(alpha.length(), buf.capacity()-1);
-				}
-				//clear
-				buf.delete(0, buf.capacity()-1);
-			}
-			arrayConnect.clear();
-			arrayConnect = new ArrayList<String>(arrayCreate);
-			arrayCreate.clear();
-			
-			digit_loop++;
-		}
-		
-		return map;
-	}
-	
-	static int index = 0;
-	private static String[] setColumnNameIndex(int digit,HashMap<String,Integer> out,int digitLoop){
-		ArrayList<String> arrayConnect = new ArrayList<String>();
-		
-		if(digitLoop>1){
-			String[] lower = setColumnNameIndex(digit, out,digitLoop-1);
-			StringBuffer buf = new StringBuffer();
-			for(String alpha:alphabet){
-				buf.append(alpha);
-				for(String strRtn:lower){
-					buf.append(strRtn);
-					out.put(buf.toString(), Integer.valueOf(index++));
-					arrayConnect.add(buf.toString());
-					buf.delete(alpha.length(), buf.capacity()-1);
-				}
-				//clear
-				buf.delete(0, buf.capacity()-1);
-			}
-			String[] strRtn = new String[arrayConnect.size()];
-			arrayConnect.toArray(strRtn);
-			arrayConnect = null;
-			return strRtn;
-		} else {
-			for(String str:alphabet){
-				out.put(str, Integer.valueOf(index++));
-			}
-			return alphabet;
-		}
-	}
 }
