@@ -16,16 +16,97 @@ public class CheckFile {
 	private static final String ISSUE_OWNER_ID = "ISSUE_OWNER_ID";
 	private static final String ISSUE_STATUS = "ISSUE_STATUS";
 	private static final String RESEARCH_STATUS = "RESEARCH_STATUS";
+
+	private static final String MODULE_ID = "MODULE_ID";
+	private static final String MODULE_PATH = "MODULE_PATH";
+	private static final String PROJECT_ID = "PROJECT_ID";
+	private static final String FUNCTION_NAME = "FUNCTION_NAME";
+
+	private static final String[] strColumnsIssueList = new String[]{"B","E","K","O","P"};
+	
+	private static Map<String,String> columnNameMapIssueList = new HashMap<String, String>();
+	static {
+		columnNameMapIssueList.put(ISSUE_ID, "B");
+		columnNameMapIssueList.put(ISSUE_REVIEWER, "E");
+		columnNameMapIssueList.put(ISSUE_STATUS, "K");
+		columnNameMapIssueList.put(ISSUE_OWNER_ID, "O");
+		columnNameMapIssueList.put(RESEARCH_STATUS, "P");
+	}
+	
+	private static final String[] strColumnsModuleList = new String[]{"B","C","D","E","F"};
+	
+	private static Map<String,String> columnNameMapModuleList = new HashMap<String, String>();
+	static {
+		columnNameMapModuleList.put(ISSUE_ID, "B");
+		columnNameMapModuleList.put(FUNCTION_NAME, "C");
+		columnNameMapModuleList.put(PROJECT_ID, "D");
+		columnNameMapModuleList.put(MODULE_ID, "E");
+		columnNameMapModuleList.put(MODULE_PATH, "F");
+	}
 	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException{
 		// TODO Auto-generated method stub
+//		checkResearchFile();
 		
-		getIssueBaseInfo();
+//		Issue[] issues = getIssueInfo("L=未リリース","L=");
+//
+//		for(Issue issue:issues){
+//			System.out.println(issue.getId()+ " "+issue.getReviewer()+ " "+issue.getStatus() + " "+issue.getResearchStatus()+" "+issue.getOwner());
+//			IssueModule[] modules = issue.getModules();
+//			for(IssueModule module:modules){
+//				System.out.println(module.getIssueID() + " "+ module.getModuleID() + " "+module.getModulePath() + " "+module.getProjectID()+ " "+module.getFunctionName());
+//			}
+//		}
+		
+		HashMap<String, String> sources = listSources();
+		int i = 0;
+		for(String key:sources.keySet()){
+			System.out.println(i++ +":"+ key + "=" + sources.get(key));
+		}
+		
 	}
 	
+	private static HashMap<String, String> listSources(){
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+		String sourceFile1 = config.getPropertyValue("check", "mps_source_path1");
+		String sourceFile2 = config.getPropertyValue("check", "mps_source_path2");
+		String sourceFile3 = config.getPropertyValue("check", "if_source_path1");
+		String sourceFile4 = config.getPropertyValue("check", "core_source_path1");
+		String sourceFile5 = config.getPropertyValue("check", "core_source_path2");
+		
+		ArrayList<File> array = new ArrayList<File>();
+		FileUtil.listAbsoluteFiles(sourceFile1, array);
+		FileUtil.listAbsoluteFiles(sourceFile2, array);
+		FileUtil.listAbsoluteFiles(sourceFile3, array);
+		FileUtil.listAbsoluteFiles(sourceFile4, array);
+		FileUtil.listAbsoluteFiles(sourceFile5, array);
+		
+		HashMap<String, String> map = new HashMap<String, String>();
+		
+		HashMap<String, String> repeatMap = new HashMap<String, String>();
+		ArrayList<String> repeatKeys = new ArrayList<String>();
+		for(File f:array){
+			if(map.containsKey(f.getName())){
+				if(!repeatKeys.contains(f.getName())){
+					repeatKeys.add(f.getName());
+				}
+				//TODO for matching module list
+				repeatMap.put(f.getAbsolutePath(), f.getAbsolutePath());
+			} else {
+				map.put(f.getName(), f.getAbsolutePath());
+			}
+		}
+		
+		for(String repeatKey:repeatKeys){
+			map.remove(repeatKey);
+		}
+		map.putAll(repeatMap);
+		
+		return map;
+	}
 	/**
 	 * 
 	 * @throws IOException
@@ -46,43 +127,47 @@ public class CheckFile {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Issue[] getIssueBaseInfo() throws IOException{
+	public static Issue[] getIssueInfo(String issueListFilterPattern,String moduleListFiterPattern) throws IOException{
 		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
-		String configListFile = config.getPropertyValue("check", "issue_list_file");
+		String configListFile = config.getPropertyValue("check", "issue_list_file");  
+		String moduleListFile = config.getPropertyValue("check", "module_list_file");
 		
-		String[] strColumns = new String[]{"B","E","K","O","P"};
-		Map<String,String> columnNameMap = new HashMap<String, String>();
-		columnNameMap.put(ISSUE_ID, "B");
-		columnNameMap.put(ISSUE_REVIEWER, "E");
-		columnNameMap.put(ISSUE_STATUS, "K");
-		columnNameMap.put(ISSUE_OWNER_ID, "O");
-		columnNameMap.put(RESEARCH_STATUS, "P");
+		//read base info
+		Issue[] issues = readIssuesFromConfig(configListFile,strColumnsIssueList,issueListFilterPattern,columnNameMapIssueList);
+		//read module info
+		setIssueModuleFromConfig(moduleListFile,strColumnsModuleList,moduleListFiterPattern,columnNameMapModuleList,issues);
 		
-		Issue[] issues = readIssuesFromConfig(configListFile,strColumns,"L=未リリース",columnNameMap);
-		
-		for(Issue issue:issues){
-			System.out.println(issue.getId()+ " "+issue.getReviewer()+ " "+issue.getStatus() + " "+issue.getResearchStatus()+" "+issue.getOwner());
-		}
 		return issues;
 	}
 	
-	private static IssueModule[] readIssueModeleFromConfig(String fromExcel,String destColAlpha[],Issue[] issues,Map<String,String> columnNameMap) throws IOException{
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,1,destColAlpha,"");//sheet 1
+	private static void setIssueModuleFromConfig(String fromExcel,String destColAlpha[],String filterPattern,
+			Map<String,String> columnNameMap,Issue[] issues) throws IOException{
+		updateSvn(fromExcel);
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,1,destColAlpha,filterPattern);//sheet 1
 		
-		IssueModule[] issueModels = new IssueModule[mapTarget.length];
-//		for(int i = 0 ; i<mapTarget.length;i++){
-//			issues[i] = new Issue();
-//			issues[i].setId(mapTarget[i].get(columnNameMap.get(ISSUE_ID)));
-//			issues[i].setReviewer(mapTarget[i].get(columnNameMap.get(ISSUE_REVIEWER)));
-//			issues[i].setOwner(mapTarget[i].get(columnNameMap.get(ISSUE_OWNER_ID)));
-//			issues[i].setStatus(mapTarget[i].get(columnNameMap.get(ISSUE_STATUS)));
-//			issues[i].setResearchStatus(mapTarget[i].get(columnNameMap.get(RESEARCH_STATUS)));
-//		}
+		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
+		for(Issue issue:issues){
+			issueMap.put(issue.getId(), issue);
+		}
 		
-		return issueModels;
+		for(int i = 0 ; i<mapTarget.length;i++){
+			String issueID = mapTarget[i].get(columnNameMap.get(ISSUE_ID));
+			if(issueMap.containsKey(issueID)){
+				Issue issue = issueMap.get(issueID);
+				IssueModule module = new IssueModule();
+				module.setIssueID(issueID);
+				module.setModuleID(mapTarget[i].get(columnNameMap.get(MODULE_ID)));
+				module.setModulePath(mapTarget[i].get(columnNameMap.get(MODULE_PATH)));
+				module.setProjectID(mapTarget[i].get(columnNameMap.get(PROJECT_ID)));
+				module.setFunctionName(mapTarget[i].get(columnNameMap.get(FUNCTION_NAME)));
+				issue.addIssueModule(module);
+			}
+		}
+
 	}
 	
 	private static Issue[] readIssuesFromConfig(String fromExcel,String destColAlpha[],String filterPattern,Map<String,String> columnNameMap) throws IOException{
+		updateSvn(fromExcel);
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,0,destColAlpha,filterPattern);//sheet 0
 		
 		Issue[] issues = new Issue[mapTarget.length];

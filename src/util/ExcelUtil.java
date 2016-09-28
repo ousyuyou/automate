@@ -44,7 +44,7 @@ public class ExcelUtil {
 	 * 
 	 */
 	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,String[] destColAlphas,String filterPattern) throws IOException{
-		ArrayList<TreeMap> arrayTarget = new ArrayList<TreeMap>();
+		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
 		FileInputStream fileIn = null;
 		
 		try{
@@ -75,21 +75,8 @@ public class ExcelUtil {
 	        	for(String alphaIndex:hashPattern.keySet()){//filter by pattern
 	        		String value = "";
 	        		int columnIndex = getColunIndexFromAlpha(alphaIndex);
-	        		//bug?
-	        		if(row.getCell(columnIndex) == null){
-	        			//default set to space
-	        			value = "";
-	        		}else {
-			   			switch(row.getCell(columnIndex).getCellType()){
-		            		case Cell.CELL_TYPE_NUMERIC:
-		            			value = String.valueOf(row.getCell(columnIndex).getNumericCellValue()).trim();
-		            			break;
-		            		default:
-		            			value = row.getCell(columnIndex).getStringCellValue().trim();
-		            			break;
-			   			}
-	        		}
-
+	        		value = getCellValue(row, columnIndex);
+	        		
 	        		if(!matchValue(hashPattern.get(alphaIndex),value)){
 	        			matchOk = false;
 	        			break;
@@ -100,7 +87,7 @@ public class ExcelUtil {
 	        		StringBuffer buf = new StringBuffer();
 	        		TreeMap<String, String> map = new TreeMap<String, String>();
 	        		for(int j = 0 ; j < destColNumbers.length;j++){
-	        			map.put(destColAlphas[j], row.getCell(destColNumbers[j]).getStringCellValue().trim());
+	        			map.put(destColAlphas[j], getCellValue(row, destColNumbers[j]));
 //	        			
 //	        			buf.append(escapeAmp(row.getCell(destColNumbers[j]).getStringCellValue().trim()));
 //	        			if(j != destColNumbers.length -1){
@@ -120,6 +107,24 @@ public class ExcelUtil {
 		arrayTarget.toArray(mapArr);
 		return mapArr;
 //		return arrayTarget;
+	}
+	
+	private static String getCellValue(Row row,int columnIndex){
+		String value = "";
+		if(row.getCell(columnIndex) == null){//bug?
+			//default set to space
+			value = "";
+		}else {
+   			switch(row.getCell(columnIndex).getCellType()){
+        		case Cell.CELL_TYPE_NUMERIC:
+        			value = String.valueOf(row.getCell(columnIndex).getNumericCellValue()).trim();
+        			break;
+        		default:
+        			value = row.getCell(columnIndex).getStringCellValue().trim();
+        			break;
+   			}
+		}
+		return value;
 	}
 	
 	/**
