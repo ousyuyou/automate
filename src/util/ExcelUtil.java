@@ -84,15 +84,9 @@ public class ExcelUtil {
 	        	}
 	        	
 	        	if(matchOk){
-	        		StringBuffer buf = new StringBuffer();
 	        		TreeMap<String, String> map = new TreeMap<String, String>();
 	        		for(int j = 0 ; j < destColNumbers.length;j++){
 	        			map.put(destColAlphas[j], getCellValue(row, destColNumbers[j]));
-//	        			
-//	        			buf.append(escapeAmp(row.getCell(destColNumbers[j]).getStringCellValue().trim()));
-//	        			if(j != destColNumbers.length -1){
-//	        				buf.append(CONNECT_CHAR);
-//	        			}
 	        		}
 	        		
 	        		arrayTarget.add(map);
@@ -106,7 +100,6 @@ public class ExcelUtil {
 		Map[] mapArr = new TreeMap[arrayTarget.size()];
 		arrayTarget.toArray(mapArr);
 		return mapArr;
-//		return arrayTarget;
 	}
 	
 	private static String getCellValue(Row row,int columnIndex){

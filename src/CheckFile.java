@@ -2,10 +2,22 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNLogEntryPath;
 
 import svn.ConfigFile;
+import svn.SVNUtil;
 import util.ExcelUtil;
 import util.FileUtil;
 public class CheckFile {
@@ -21,9 +33,11 @@ public class CheckFile {
 	private static final String MODULE_PATH = "MODULE_PATH";
 	private static final String PROJECT_ID = "PROJECT_ID";
 	private static final String FUNCTION_NAME = "FUNCTION_NAME";
-
-	private static final String[] strColumnsIssueList = new String[]{"B","E","K","O","P"};
 	
+	/**
+	 * issue list
+	 */
+	private static final String[] strColumnsIssueList = new String[]{"B","E","K","O","P"};
 	private static Map<String,String> columnNameMapIssueList = new HashMap<String, String>();
 	static {
 		columnNameMapIssueList.put(ISSUE_ID, "B");
@@ -32,9 +46,10 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_OWNER_ID, "O");
 		columnNameMapIssueList.put(RESEARCH_STATUS, "P");
 	}
-	
+	/**
+	 * module list,source
+	 */
 	private static final String[] strColumnsModuleList = new String[]{"B","C","D","E","F"};
-	
 	private static Map<String,String> columnNameMapModuleList = new HashMap<String, String>();
 	static {
 		columnNameMapModuleList.put(ISSUE_ID, "B");
@@ -45,28 +60,90 @@ public class CheckFile {
 	}
 	
 	/**
+	 * module list,database,shell
+	 */
+	private static final String[] strColumnsCommonModuleList = new String[]{"B","C","D"};
+	private static Map<String,String> columnNameMapCommonModuleList = new HashMap<String, String>();
+	static {
+		columnNameMapCommonModuleList.put(ISSUE_ID, "B");
+		columnNameMapCommonModuleList.put(MODULE_ID, "C");
+		columnNameMapCommonModuleList.put(MODULE_PATH, "D");
+	}
+	
+	/**
 	 * @param args
 	 */
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException,SVNException{
 		// TODO Auto-generated method stub
 //		checkResearchFile();
 		
-//		Issue[] issues = getIssueInfo("L=未リリース","L=");
-//
-//		for(Issue issue:issues){
-//			System.out.println(issue.getId()+ " "+issue.getReviewer()+ " "+issue.getStatus() + " "+issue.getResearchStatus()+" "+issue.getOwner());
-//			IssueModule[] modules = issue.getModules();
-//			for(IssueModule module:modules){
-//				System.out.println(module.getIssueID() + " "+ module.getModuleID() + " "+module.getModulePath() + " "+module.getProjectID()+ " "+module.getFunctionName());
-//			}
-//		}
 		
 		HashMap<String, String> sources = listSources();
-		int i = 0;
-		for(String key:sources.keySet()){
-			System.out.println(i++ +":"+ key + "=" + sources.get(key));
+//		int i = 0;
+//		for(String key:sources.keySet()){
+//			System.out.println(i++ +":"+ key + "=" + sources.get(key));
+//		}
+
+		Issue[] issues = getIssueInfo("L=未リリース");
+
+		for(Issue issue:issues){
+			IssueModule[] modules = issue.getModules();
+			if(modules.length == 0){
+				System.out.println(issue.getId()+ " does not find modules ");
+			}
+			for(IssueModule module:modules){
+				if(sources.containsKey(module.getModulePath())){
+					System.out.println(module.getIssueID() + " "+module.getModulePath() + " source path= " + sources.get(module.getModulePath()));
+					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
+					System.out.println("commit counts: "+list.size());
+//					printLog(list);
+				} else {
+					System.out.println(module.getIssueID() + " "+module.getModulePath() + " source path does not exists" );
+				}
+			}
 		}
 		
+	}
+	
+	private static void printLog(List<SVNLogEntry> history){
+      for(SVNLogEntry logEntry:history){
+		System.out.println( "---------------------------------------------" );
+		System.out.println ("revision: " + logEntry.getRevision( ) );
+		System.out.println( "author: " + logEntry.getAuthor( ) );
+		System.out.println( "date: " + logEntry.getDate( ) );
+		System.out.println( "log message: " + logEntry.getMessage( ) );
+	
+//		if ( logEntry.getChangedPaths( ).size( ) > 0 ) {
+//		  System.out.println( );
+//		  System.out.println( "changed paths:" );
+//		  Set changedPathsSet = logEntry.getChangedPaths( ).keySet( );
+//
+//		  for ( Iterator<SVNLogEntryPath> changedPaths = changedPathsSet.iterator( ); changedPaths.hasNext( ); ) {
+//		  SVNLogEntryPath entryPath = ( SVNLogEntryPath ) logEntry.getChangedPaths( ).get( changedPaths.next( ) );
+//		  	System.out.println( " "
+//		  	+ entryPath.getType( )
+//		 	+ " "
+//		  	+ entryPath.getPath( )
+//		  	+ ( ( entryPath.getCopyPath( ) != null ) ? " (from "
+//		  			+ entryPath.getCopyPath( ) + " revision "
+//		  			+ entryPath.getCopyRevision( ) + ")" : "" ) );
+//		  	}
+//		 }
+      }
+	}
+	
+	//30 days before
+	private static Date getStartDate(int minusDay){
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());
+		cal.add(Calendar.DAY_OF_MONTH, minusDay);
+		return cal.getTime();
+	}
+	
+	//today
+	private static Date getEndDate(){
+		Calendar cal = Calendar.getInstance();
+		return cal.getTime();
 	}
 	
 	private static HashMap<String, String> listSources(){
@@ -85,28 +162,45 @@ public class CheckFile {
 		FileUtil.listAbsoluteFiles(sourceFile5, array);
 		
 		HashMap<String, String> map = new HashMap<String, String>();
+		HashSet<String> repeatKeys = new HashSet<String>();
 		
-		HashMap<String, String> repeatMap = new HashMap<String, String>();
-		ArrayList<String> repeatKeys = new ArrayList<String>();
 		for(File f:array){
 			if(map.containsKey(f.getName())){
 				if(!repeatKeys.contains(f.getName())){
 					repeatKeys.add(f.getName());
 				}
-				//TODO for matching module list
-				repeatMap.put(f.getAbsolutePath(), f.getAbsolutePath());
 			} else {
 				map.put(f.getName(), f.getAbsolutePath());
 			}
 		}
 		
-		for(String repeatKey:repeatKeys){
-			map.remove(repeatKey);
+		for(File f:array){
+			if(repeatKeys.contains(f.getName())){
+				map.remove(f.getName());
+				String absolutePath = f.getAbsolutePath();
+				if(absolutePath.indexOf("\\FMS-CORE") >= 0){
+					absolutePath = setMatchKey(absolutePath,"/FMS-CORE");
+				}
+				if(absolutePath.indexOf("\\FMS-IF") >= 0){
+					absolutePath = setMatchKey(absolutePath,"/FMS-IF");
+				}
+				if(absolutePath.indexOf("\\MPS") >= 0){
+					absolutePath = setMatchKey(absolutePath,"/MPS");
+				}
+				map.put(absolutePath, f.getAbsolutePath());
+			}
 		}
-		map.putAll(repeatMap);
 		
 		return map;
 	}
+	
+	private static String setMatchKey(String absolutePath,String findKey){
+		String path = absolutePath.replace("\\", "/");
+		path = path.substring(path.indexOf(findKey));
+		
+		return path;
+	}
+	
 	/**
 	 * 
 	 * @throws IOException
@@ -127,7 +221,7 @@ public class CheckFile {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Issue[] getIssueInfo(String issueListFilterPattern,String moduleListFiterPattern) throws IOException{
+	public static Issue[] getIssueInfo(String issueListFilterPattern) throws IOException{
 		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
 		String configListFile = config.getPropertyValue("check", "issue_list_file");  
 		String moduleListFile = config.getPropertyValue("check", "module_list_file");
@@ -135,15 +229,15 @@ public class CheckFile {
 		//read base info
 		Issue[] issues = readIssuesFromConfig(configListFile,strColumnsIssueList,issueListFilterPattern,columnNameMapIssueList);
 		//read module info
-		setIssueModuleFromConfig(moduleListFile,strColumnsModuleList,moduleListFiterPattern,columnNameMapModuleList,issues);
+		setIssueModuleFromConfig(moduleListFile,issues);
 		
 		return issues;
 	}
 	
-	private static void setIssueModuleFromConfig(String fromExcel,String destColAlpha[],String filterPattern,
-			Map<String,String> columnNameMap,Issue[] issues) throws IOException{
+	private static void setIssueModuleFromConfig(String fromExcel,Issue[] issues) throws IOException{
 		updateSvn(fromExcel);
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,1,destColAlpha,filterPattern);//sheet 1
+		
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,1,strColumnsModuleList,"L=");//sheet 1
 		
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for(Issue issue:issues){
@@ -151,19 +245,45 @@ public class CheckFile {
 		}
 		
 		for(int i = 0 ; i<mapTarget.length;i++){
-			String issueID = mapTarget[i].get(columnNameMap.get(ISSUE_ID));
+			String issueID = mapTarget[i].get(columnNameMapModuleList.get(ISSUE_ID));
 			if(issueMap.containsKey(issueID)){
 				Issue issue = issueMap.get(issueID);
 				IssueModule module = new IssueModule();
 				module.setIssueID(issueID);
-				module.setModuleID(mapTarget[i].get(columnNameMap.get(MODULE_ID)));
-				module.setModulePath(mapTarget[i].get(columnNameMap.get(MODULE_PATH)));
-				module.setProjectID(mapTarget[i].get(columnNameMap.get(PROJECT_ID)));
-				module.setFunctionName(mapTarget[i].get(columnNameMap.get(FUNCTION_NAME)));
+				String modulePath = mapTarget[i].get(columnNameMapModuleList.get(MODULE_PATH));
+				module.setModulePath(mapTarget[i].get(columnNameMapModuleList.get(MODULE_PATH)));
+				
+				if(StringUtils.isBlank(modulePath)){
+					module.setModulePath(mapTarget[i].get(columnNameMapModuleList.get(MODULE_ID)));
+				}
+				module.setModuleID(mapTarget[i].get(columnNameMapModuleList.get(MODULE_ID)));
+				
+				module.setProjectID(mapTarget[i].get(columnNameMapModuleList.get(PROJECT_ID)));
+				module.setFunctionName(mapTarget[i].get(columnNameMapModuleList.get(FUNCTION_NAME)));
 				issue.addIssueModule(module);
 			}
 		}
 
+		mapTarget = ExcelUtil.readContentFromExcelMult(fromExcel,2,strColumnsCommonModuleList,"I=");//sheet 2
+		for(int i = 0 ; i<mapTarget.length;i++){
+			String issueID = mapTarget[i].get(columnNameMapCommonModuleList.get(ISSUE_ID));
+			
+			if(issueMap.containsKey(issueID)){
+				Issue issue = issueMap.get(issueID);
+				IssueModule module = new IssueModule();
+				module.setIssueID(issueID);
+				
+				String modulePath = mapTarget[i].get(columnNameMapCommonModuleList.get(MODULE_PATH));
+				module.setModuleID(mapTarget[i].get(columnNameMapCommonModuleList.get(MODULE_ID)));
+				
+				if(StringUtils.isNotBlank(modulePath)){
+					module.setModulePath(mapTarget[i].get(columnNameMapCommonModuleList.get(MODULE_ID))
+							+"\\"+mapTarget[i].get(columnNameMapCommonModuleList.get(MODULE_PATH)));
+				}
+				
+				issue.addIssueModule(module);
+			}
+		}
 	}
 	
 	private static Issue[] readIssuesFromConfig(String fromExcel,String destColAlpha[],String filterPattern,Map<String,String> columnNameMap) throws IOException{
@@ -253,7 +373,7 @@ public class CheckFile {
 		String svnInstallPath = config.getPropertyValue("global", "svn_install_path");
 		//clean
 		strBufClean.append("/command:cleanup /path:");
-		strBufClean.append(destDirectory);
+		strBufClean.append(destDirectory.substring(0, destDirectory.lastIndexOf("/")));
 		strBufClean.append(SPACE);
 		strBufClean.append("/notempfile /noui /closeonend:1");
 		String[] commandClean = new String[]{svnInstallPath, strBufClean.toString()};

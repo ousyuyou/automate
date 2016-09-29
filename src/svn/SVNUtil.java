@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -31,15 +32,18 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 public class SVNUtil {
 	private static Logger logger = Logger.getLogger(SVNUtil.class);
 	private static String svnRootPath = "";
+	private static ConfigFile config = null;
+	static {
+		config = new ConfigFile(new File("e:/cert/config"));
+		svnRootPath = config.getPropertyValue("global", "svn_root_path");
+	}
 	private static File CERT_FILE_PATH = new File("e:/cert/");
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws SVNException{
 		// TODO Auto-generated method stub
-		ConfigFile config = new ConfigFile(new File("e:/cert/config"));
 		String configListFile = config.getPropertyValue("check", "change_list_file");
-		svnRootPath = config.getPropertyValue("global", "svn_root_path");
 		
 		getHistory(configListFile);
 //		checkOutFromSVN();
@@ -150,8 +154,34 @@ public class SVNUtil {
 		
 	}
 	
+	public static List<SVNLogEntry> getHistory(String path,Date begin,Date end,final String messageFilter) throws SVNException{
+		SVNClientManager clientManager = authSvn(svnRootPath,CERT_FILE_PATH);
+
+		final List<SVNLogEntry> history = new ArrayList<SVNLogEntry>();
+
+        File f = new File(path);
+        File[] paths = new File[]{f};
+        
+        clientManager.getLogClient().doLog(paths, SVNRevision.create(begin), SVNRevision.create(end), false,  true, Integer.MAX_VALUE,
+        		new ISVNLogEntryHandler(){
+        			public void handleLogEntry(SVNLogEntry logEntry) throws SVNException{
+        				if(StringUtils.isNotBlank(messageFilter)){
+        					if(logEntry.getMessage().contains(messageFilter)){
+        						history.add(logEntry);
+        					} else {
+        						System.out.println("message not match filter: " +logEntry.getMessage());
+        					}
+        				} else {
+        					history.add(logEntry);
+        				}
+        			}
+        		});
+        return history;
+	}
+	
 	@SuppressWarnings("deprecation")
 	public static void getHistory(String path) throws SVNException{
+		
 		SVNClientManager clientManager = authSvn(svnRootPath,CERT_FILE_PATH);
         
         final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");

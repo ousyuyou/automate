@@ -6,6 +6,9 @@
 public class IssueModule {
 	private String issueID;
 	private String moduleID;
+	/**
+	 * the mapping key,when blank set moduleid
+	 */
 	private String modulePath;
 	/**
 	 * fms-core,fms-if,surittokei
