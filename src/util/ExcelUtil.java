@@ -5,13 +5,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
 import java.util.TreeMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import calculate.*;
 
 public class ExcelUtil {
 	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
@@ -41,9 +44,9 @@ public class ExcelUtil {
 	 * @param sheetNo:index from 0
 	 * @param destColAlpha:A,B,C
 	 * @param filterPattern:just support;for example C=OK&&D=100
-	 * 
+	 * @return  A=value1,B=value2...
 	 */
-	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,String[] destColAlphas,String filterPattern) throws IOException{
+	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,String[] destColAlphas,String columnAlphaFilter) throws IOException{
 		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
 		FileInputStream fileIn = null;
 		
@@ -53,7 +56,7 @@ public class ExcelUtil {
 	        Sheet sheet = wb.getSheetAt(sheetNo);
 	        
 	        //parse filterPattern,just support &&
-	        String[] strPatterns = filterPattern.split(CONNECT_CHAR);
+	        String[] strPatterns = columnAlphaFilter.split(CONNECT_CHAR);
 	        TreeMap<String, String> hashPattern = new TreeMap<String, String>();
 	        
 	        for(String str:strPatterns){
@@ -87,6 +90,71 @@ public class ExcelUtil {
 	        		TreeMap<String, String> map = new TreeMap<String, String>();
 	        		for(int j = 0 ; j < destColNumbers.length;j++){
 	        			map.put(destColAlphas[j], getCellValue(row, destColNumbers[j]));
+	        		}
+	        		
+	        		arrayTarget.add(map);
+	        	}
+	        }
+		} finally{
+			if(fileIn!=null){
+				fileIn.close();
+			}
+		}
+		Map[] mapArr = new TreeMap[arrayTarget.size()];
+		arrayTarget.toArray(mapArr);
+		return mapArr;
+	}
+	
+	/**
+	 * 
+	 * @param fileName excel file name
+	 * @param sheetNo excel sheet no
+	 * @param destColNames key=ISSUE_ID value=B;key=ISSUE_REVIEWER value=E...
+	 * @param filterPattern ISSUE_ID=XXX100&ISSUE_REVIEWER=XXX101
+	 * @return ISSUE_ID=value1,ISSUE_REVIEWER=value2...
+	 * @throws IOException
+	 */
+	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,Map<String,String> destColNames,
+			String columnNameFilterExpress) throws IOException{
+		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
+		FileInputStream fileIn = null;
+		
+		try{
+			fileIn = new FileInputStream(fileName);
+	        Workbook wb = new XSSFWorkbook(new FileInputStream(fileName));
+	        Sheet sheet = wb.getSheetAt(sheetNo);
+	        
+	        //init
+	        if(map == null || map.size() == 0){
+	        	setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
+	        }
+	        
+	        //convert column alpha to column index
+	        TreeMap<String, Integer> destColIndexs = convertColumnAlphaToIndex(destColNames);
+	        
+	        for(int i = 0; i <= sheet.getLastRowNum();i++){
+	        	Row row = sheet.getRow(i);
+	        	String strCalculate = new String(columnNameFilterExpress);
+	        	for(String columnName:destColIndexs.keySet()){
+	        		if(columnNameFilterExpress.contains(columnName)){
+	        			int columnIndex = destColIndexs.get(columnName).intValue();
+	        			String value = getCellValue(row, columnIndex);
+	        			//replace "" blank to " " for calculate
+	        			if(StringUtils.isBlank(value)){
+	        				value = " ";
+	        			}
+	        			strCalculate = strCalculate.replaceAll(columnName, value);
+	        		}
+	        	}
+//	        	System.out.print(strCalculate);
+	    		String value = Calculator.calculate(strCalculate,false);
+//	    		System.out.println(" value "+value);
+	    		
+	        	if("1".equals(value)){
+	        		TreeMap<String, String> map = new TreeMap<String, String>();
+	        		
+	        		for(String columnName:destColNames.keySet()){
+	        			map.put(columnName, getCellValue(row,destColIndexs.get(columnName).intValue()));
 	        		}
 	        		
 	        		arrayTarget.add(map);
@@ -138,6 +206,16 @@ public class ExcelUtil {
 	
 	private static int getColunIndexFromAlpha(String alpha){
 		return getColunIndexFromAlphaMult(new String[]{alpha})[0]; 
+	}
+	
+	private static TreeMap<String, Integer> convertColumnAlphaToIndex(Map<String,String> destColNames){
+		TreeMap<String, Integer> destColIndexs = new TreeMap<String, Integer>();
+		
+		for(String columnName:destColNames.keySet()){
+			destColIndexs.put(columnName, map.get(destColNames.get(columnName)));
+		}
+		
+		return destColIndexs;
 	}
 	
 	/**

@@ -33,7 +33,8 @@ public class CheckFile {
 	private static final String MODULE_PATH = "MODULE_PATH";
 	private static final String PROJECT_ID = "PROJECT_ID";
 	private static final String FUNCTION_NAME = "FUNCTION_NAME";
-	
+	private static final boolean DEBUG = false;
+
 	/**
 	 * issue list
 	 */
@@ -74,35 +75,65 @@ public class CheckFile {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException,SVNException{
-		// TODO Auto-generated method stub
-//		checkResearchFile();
-		
-		
-		HashMap<String, String> sources = listSources();
-//		int i = 0;
-//		for(String key:sources.keySet()){
-//			System.out.println(i++ +":"+ key + "=" + sources.get(key));
+		//check research file
+//		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+//		String configListFile = config.getPropertyValue("check", "issue_list_file");
+//		String resultPath = config.getPropertyValue("check", "result_out_path");
+//		
+//		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=○",resultPath);
+//		for(String str:out){
+//			System.out.println(str + " research file does not exists");
 //		}
-
-		Issue[] issues = getIssueInfo("L=未リリース");
-
-		for(Issue issue:issues){
-			IssueModule[] modules = issue.getModules();
-			if(modules.length == 0){
-				System.out.println(issue.getId()+ " does not find modules ");
-			}
-			for(IssueModule module:modules){
-				if(sources.containsKey(module.getModulePath())){
-					System.out.println(module.getIssueID() + " "+module.getModulePath() + " source path= " + sources.get(module.getModulePath()));
-					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
-					System.out.println("commit counts: "+list.size());
-//					printLog(list);
-				} else {
-					System.out.println(module.getIssueID() + " "+module.getModulePath() + " source path does not exists" );
-				}
-			}
-		}
+//		
+//		//check source commit
+//		HashMap<String, String> sources = listSources();
+//		Issue[] issues = getIssueInfo("L=未リリース");
+//
+//		for(Issue issue:issues){
+//			IssueModule[] modules = issue.getModules();
+//			
+//			if(modules.length == 0){
+//				System.out.println(issue.getId()+ " Waring:module list does not find modules");
+//			}
+//			
+//			for(IssueModule module:modules){
+//				if(sources.containsKey(module.getModulePath())){
+//					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
+//					if(list.size() ==0){
+//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: no match commit");
+//					}else{
+//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
+//					}
+//					
+//					if(DEBUG){
+//						printLog(list);
+//					}
+//				} else {
+//					System.out.println(module.getIssueID() + " "+module.getModulePath() + " Waring: source path does not exists" );
+//				}
+//			}
+//		}
+		//check si test file
 		
+		//check ut test file
+		
+		testFilterExpression();
+		
+	}
+	
+	private static void testFilterExpression() throws IOException{
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+		String configListFile = config.getPropertyValue("check", "issue_list_file");
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile, 0, columnNameMapIssueList, "ISSUE_ID!受入課題244&RESEARCH_STATUS=○");
+		
+		for(int i = 0 ; i<mapTarget.length;i++){
+			System.out.print("issue1  "+mapTarget[i].get(ISSUE_ID));
+			System.out.print(" issue2  "+mapTarget[i].get(ISSUE_REVIEWER));
+			System.out.print(" issue3  "+mapTarget[i].get(ISSUE_OWNER_ID));
+			System.out.print(" issue4  "+mapTarget[i].get(ISSUE_STATUS));
+			System.out.print(" issue5  "+mapTarget[i].get(RESEARCH_STATUS));
+			System.out.println();
+		}
 	}
 	
 	private static void printLog(List<SVNLogEntry> history){
@@ -113,22 +144,22 @@ public class CheckFile {
 		System.out.println( "date: " + logEntry.getDate( ) );
 		System.out.println( "log message: " + logEntry.getMessage( ) );
 	
-//		if ( logEntry.getChangedPaths( ).size( ) > 0 ) {
-//		  System.out.println( );
-//		  System.out.println( "changed paths:" );
-//		  Set changedPathsSet = logEntry.getChangedPaths( ).keySet( );
-//
-//		  for ( Iterator<SVNLogEntryPath> changedPaths = changedPathsSet.iterator( ); changedPaths.hasNext( ); ) {
-//		  SVNLogEntryPath entryPath = ( SVNLogEntryPath ) logEntry.getChangedPaths( ).get( changedPaths.next( ) );
-//		  	System.out.println( " "
-//		  	+ entryPath.getType( )
-//		 	+ " "
-//		  	+ entryPath.getPath( )
-//		  	+ ( ( entryPath.getCopyPath( ) != null ) ? " (from "
-//		  			+ entryPath.getCopyPath( ) + " revision "
-//		  			+ entryPath.getCopyRevision( ) + ")" : "" ) );
-//		  	}
-//		 }
+		if ( logEntry.getChangedPaths( ).size( ) > 0 ) {
+		  System.out.println( );
+		  System.out.println( "changed paths:" );
+		  Set changedPathsSet = logEntry.getChangedPaths( ).keySet( );
+
+		  for ( Iterator<SVNLogEntryPath> changedPaths = changedPathsSet.iterator( ); changedPaths.hasNext( ); ) {
+		  SVNLogEntryPath entryPath = ( SVNLogEntryPath ) logEntry.getChangedPaths( ).get( changedPaths.next( ) );
+		  	System.out.println( " "
+		  	+ entryPath.getType( )
+		 	+ " "
+		  	+ entryPath.getPath( )
+		  	+ ( ( entryPath.getCopyPath( ) != null ) ? " (from "
+		  			+ entryPath.getCopyPath( ) + " revision "
+		  			+ entryPath.getCopyRevision( ) + ")" : "" ) );
+		  	}
+		 }
       }
 	}
 	
@@ -199,21 +230,6 @@ public class CheckFile {
 		path = path.substring(path.indexOf(findKey));
 		
 		return path;
-	}
-	
-	/**
-	 * 
-	 * @throws IOException
-	 */
-	public static void checkResearchFile() throws IOException{
-		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
-		String configListFile = config.getPropertyValue("check", "issue_list_file");
-		String resultPath = config.getPropertyValue("check", "result_out_path");
-		
-		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=○",resultPath);
-		for(String str:out){
-			System.out.println(str);
-		}
 	}
 	
 	/**
@@ -310,7 +326,7 @@ public class CheckFile {
 	 * @param filterPattern:just support;for example C=OK&&D=100
 	 * @param destDirectory result files's directory
 	 */
-	private static ArrayList<String> checkFileExistsFromExcel(String fromExcel,String destColAlpha,String filterPattern,String destDirectory) throws IOException{
+	public static ArrayList<String> checkFileExistsFromExcel(String fromExcel,String destColAlpha,String filterPattern,String destDirectory) throws IOException{
 		//update svn
 		updateSvn(fromExcel);
 		updateSvn(destDirectory);
@@ -322,11 +338,6 @@ public class CheckFile {
 		for(int i = 0 ;i < mapTarget.length;i++){
 			strTarget[i] = (String)mapTarget[i].get(destColAlpha);
 		}
-//		System.out.println("Target from");
-//		for(String str:arrTarget){
-//			System.out.println(str);
-//		}
-//		System.out.println("Target end");
 		
 		ArrayList<String> arrResult = new ArrayList<String>();
 		FileUtil.listFiles(new File(destDirectory), arrResult);

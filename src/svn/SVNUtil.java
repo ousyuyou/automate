@@ -38,6 +38,8 @@ public class SVNUtil {
 		svnRootPath = config.getPropertyValue("global", "svn_root_path");
 	}
 	private static File CERT_FILE_PATH = new File("e:/cert/");
+	private static final boolean DEBUG = false;
+	
 	/**
 	 * @param args
 	 */
@@ -169,7 +171,9 @@ public class SVNUtil {
         					if(logEntry.getMessage().contains(messageFilter)){
         						history.add(logEntry);
         					} else {
-        						System.out.println("message not match filter: " +logEntry.getMessage());
+        						if(DEBUG){
+        							System.out.println("message not match filter: " +logEntry.getMessage());
+        						}
         					}
         				} else {
         					history.add(logEntry);
@@ -180,7 +184,7 @@ public class SVNUtil {
 	}
 	
 	@SuppressWarnings("deprecation")
-	public static void getHistory(String path) throws SVNException{
+	private static void getHistory(String path) throws SVNException{
 		
 		SVNClientManager clientManager = authSvn(svnRootPath,CERT_FILE_PATH);
         
