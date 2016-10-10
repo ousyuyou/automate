@@ -17,35 +17,42 @@ public class FunctionFactory {
 	/**
 	 * issue list
 	 */
-	private static Map<String,String> columnNameMapList = new HashMap<String, String>();
+	private static Map<String,String> columnNameMap = new HashMap<String, String>();
 	static {
-		columnNameMapList.put("no", "A");
-		columnNameMapList.put("functionName", "B");
-		columnNameMapList.put("compareTableID", "D");
-		columnNameMapList.put("compareSetFile", "E");
-		columnNameMapList.put("inputTable", "H");
-		columnNameMapList.put("outputTable", "I");
-		columnNameMapList.put("shellVer1", "J");
-		columnNameMapList.put("shellVer2", "K");
-		columnNameMapList.put("taisyo", "M");
+		columnNameMap.put("no", "A");
+		columnNameMap.put("functionName", "B");
+		columnNameMap.put("compareTableID", "D");
+		columnNameMap.put("compareSetFile", "E");
+		columnNameMap.put("inputTable", "H");
+		columnNameMap.put("outputTable", "I");
+		columnNameMap.put("shellVer1", "J");
+		columnNameMap.put("shellVer2", "K");
+		columnNameMap.put("taisyo", "M");
 	}
 	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException,ClassNotFoundException{
-		// TODO Auto-generated method stub
 		FunctionFactory factory = new FunctionFactory();
-		factory.readFunctionsFromExcel("e:/åüèÿëŒè€àÍóó.xlsx");
+		Map<String,Function> mapFunction = factory.readFunctionsFromExcel("e:/åüèÿëŒè€àÍóó.xlsx");
+
+		for(String key:mapFunction.keySet()){
+			Function function = mapFunction.get(key);
+			System.out.println(function.getNo() + " " + function.getFunctionName() + " compareTableIDs "+function.getCompareTables().length
+					+" inputTables: "+function.getInputTables().length + " outputTable: "+function.getOutputTables().length
+					+" shell1: "+function.getShellsVer1().length  +" shell2: "+function.getShellsVer2().length);	
+		}
+		
 	}
 	
 	public FunctionFactory(){
-		//Treemap is ok?maintence the insert sequence
+		//maintence the insert sequence
 		map = new LinkedHashMap<String, Function>();
 	}
 
 	public Map<String,Function> readFunctionsFromExcel(String excelFilePath) throws IOException{
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(excelFilePath, 0, columnNameMapList, "(compareTableID! |inputTable! |outputTable! )&taisyo=Åõ");
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(excelFilePath, 0, columnNameMap, "(compareTableID! |inputTable! |outputTable! )&taisyo=Åõ");
 		
 		try{
 			LineData lineDataBean = null;
@@ -71,12 +78,6 @@ public class FunctionFactory {
 				constructLineData(lineDataBean);
 			}
 
-			for(String key:map.keySet()){
-				Function function = map.get(key);
-				System.out.println(function.getNo() + " " + function.getFunctionName() + " compareTableIDs "+function.getCompareTables().length
-						+" inputTables: "+function.getInputTables().length + " outputTable: "+function.getOutputTables().length
-						+" shell1: "+function.getShellsVer1().length  +" shell2: "+function.getShellsVer2().length);	
-			}
 		}catch(ClassNotFoundException cnfe){
 			cnfe.printStackTrace();
 		}catch(IllegalAccessException iae){
