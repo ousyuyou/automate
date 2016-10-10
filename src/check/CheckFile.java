@@ -45,8 +45,8 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_ID, "B");
 		columnNameMapIssueList.put(ISSUE_REVIEWER, "E");
 		columnNameMapIssueList.put(ISSUE_STATUS, "K");
-		columnNameMapIssueList.put(ISSUE_OWNER_ID, "O");
-		columnNameMapIssueList.put(RESEARCH_STATUS, "P");
+		columnNameMapIssueList.put(ISSUE_OWNER_ID, "P");
+		columnNameMapIssueList.put(RESEARCH_STATUS, "Q");
 	}
 	/**
 	 * module list,source
@@ -81,14 +81,14 @@ public class CheckFile {
 		String configListFile = config.getPropertyValue("check", "issue_list_file");
 		String resultPath = config.getPropertyValue("check", "result_out_path");
 		
-		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=○",resultPath);
+		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","Q=○",resultPath);
 		for(String str:out){
 			System.out.println(str + " research file does not exists");
 		}
 		
 		//check source commit
 		HashMap<String, String> sources = listSources();
-		Issue[] issues = getIssueInfo("L=未リリース");
+		Issue[] issues = getIssueInfo("M=未リリース");
 
 		for(Issue issue:issues){
 			IssueModule[] modules = issue.getModules();
@@ -168,6 +168,11 @@ public class CheckFile {
 		String sourceFile3 = config.getPropertyValue("check", "if_source_path1");
 		String sourceFile4 = config.getPropertyValue("check", "core_source_path1");
 		String sourceFile5 = config.getPropertyValue("check", "core_source_path2");
+		updateSvn(sourceFile1);
+		updateSvn(sourceFile2);
+		updateSvn(sourceFile3);
+		updateSvn(sourceFile4);
+		updateSvn(sourceFile5);
 		
 		ArrayList<File> array = new ArrayList<File>();
 		FileUtil.listAbsoluteFiles(sourceFile1, array);
