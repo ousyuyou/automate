@@ -77,64 +77,47 @@ public class CheckFile {
 	 */
 	public static void main(String[] args) throws IOException,SVNException{
 		//check research file
-//		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
-//		String configListFile = config.getPropertyValue("check", "issue_list_file");
-//		String resultPath = config.getPropertyValue("check", "result_out_path");
-//		
-//		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=○",resultPath);
-//		for(String str:out){
-//			System.out.println(str + " research file does not exists");
-//		}
-//		
-//		//check source commit
-//		HashMap<String, String> sources = listSources();
-//		Issue[] issues = getIssueInfo("L=未リリース");
-//
-//		for(Issue issue:issues){
-//			IssueModule[] modules = issue.getModules();
-//			
-//			if(modules.length == 0){
-//				System.out.println(issue.getId()+ " Waring:module list does not find modules");
-//			}
-//			
-//			for(IssueModule module:modules){
-//				if(sources.containsKey(module.getModulePath())){
-//					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
-//					if(list.size() ==0){
-//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: no match commit");
-//					}else{
-//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
-//					}
-//					
-//					if(DEBUG){
-//						printLog(list);
-//					}
-//				} else {
-//					System.out.println(module.getIssueID() + " "+module.getModulePath() + " Waring: source path does not exists" );
-//				}
-//			}
-//		}
+		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+		String configListFile = config.getPropertyValue("check", "issue_list_file");
+		String resultPath = config.getPropertyValue("check", "result_out_path");
+		
+		ArrayList<String> out = checkFileExistsFromExcel(configListFile,"B","P=○",resultPath);
+		for(String str:out){
+			System.out.println(str + " research file does not exists");
+		}
+		
+		//check source commit
+		HashMap<String, String> sources = listSources();
+		Issue[] issues = getIssueInfo("L=未リリース");
+
+		for(Issue issue:issues){
+			IssueModule[] modules = issue.getModules();
+			
+			if(modules.length == 0){
+				System.out.println(issue.getId()+ " Waring:module list does not find modules");
+			}
+			
+			for(IssueModule module:modules){
+				if(sources.containsKey(module.getModulePath())){
+					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
+					if(list.size() ==0){
+						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: no match commit");
+					}else{
+						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
+					}
+					
+					if(DEBUG){
+						printLog(list);
+					}
+				} else {
+					System.out.println(module.getIssueID() + " "+module.getModulePath() + " Waring: source path does not exists" );
+				}
+			}
+		}
 		//check si test file
 		
 		//check ut test file
-		
-		testFilterExpression();
-		
-	}
-	
-	private static void testFilterExpression() throws IOException{
-		ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
-		String configListFile = config.getPropertyValue("check", "issue_list_file");
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile, 0, columnNameMapIssueList, "ISSUE_ID!受入課題244&RESEARCH_STATUS=○");
-		
-		for(int i = 0 ; i<mapTarget.length;i++){
-			System.out.print("issue1  "+mapTarget[i].get(ISSUE_ID));
-			System.out.print(" issue2  "+mapTarget[i].get(ISSUE_REVIEWER));
-			System.out.print(" issue3  "+mapTarget[i].get(ISSUE_OWNER_ID));
-			System.out.print(" issue4  "+mapTarget[i].get(ISSUE_STATUS));
-			System.out.print(" issue5  "+mapTarget[i].get(RESEARCH_STATUS));
-			System.out.println();
-		}
+				
 	}
 	
 	private static void printLog(List<SVNLogEntry> history){
