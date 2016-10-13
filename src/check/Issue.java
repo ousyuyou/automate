@@ -13,6 +13,7 @@ public class Issue {
 	private String delayComment;
 	private String actualStartDate;
 	private String actualFinishDate;
+	private String dealFlag;
 	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
@@ -134,6 +135,14 @@ public class Issue {
 
 	public void setActualFinishDate(String actualFinishDate) {
 		this.actualFinishDate = actualFinishDate;
+	}
+
+	public String getDealFlag() {
+		return dealFlag;
+	}
+
+	public void setDealFlag(String dealFlag) {
+		this.dealFlag = dealFlag;
 	}
 
 }

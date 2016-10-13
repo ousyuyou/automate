@@ -44,6 +44,7 @@ public class CheckFile {
 	private static final String DELAY_COMMENT = "DELAY_COMMENT";
 	private static final String ACTUAL_START_DATE = "ACTUAL_START_DATE";
 	private static final String ACTUAL_FINISH_DATE = "ACTUAL_FINISH_DATE";
+	private static final String DEAL_FLAG = "DEAL_FLAG";
 	private static final boolean DEBUG = false;
 	private static final boolean CONSOLE = true;
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
@@ -64,6 +65,7 @@ public class CheckFile {
 		columnNameMapIssueList.put(DELAY_COMMENT, "U");
 		columnNameMapIssueList.put(ACTUAL_START_DATE, "S");
 		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "T");
+		columnNameMapIssueList.put(DEAL_FLAG, "L");
 	}
 	/**
 	 * module list,source
@@ -99,16 +101,17 @@ public class CheckFile {
 		Issue[] issues = getIssueInfo("RELEASE_STATUS=未リリース", false);
 		//check scopes
 		checkScope(issues,messagesOut);
+		issues = getIssueInfo("RELEASE_STATUS=未リリース&DEAL_FLAG=○", false);
 		//check research status
 		checkResearchStatus(issues,messagesOut);
 		//check finish date
 		checkFinishDate(issues,messagesOut);
 
 		//check research file
-		Issue[] researchIssues = getIssueInfo("RELEASE_STATUS=未リリース&RESEARCH_STATUS=○", false);
+		Issue[] researchIssues = getIssueInfo("RELEASE_STATUS=未リリース&RESEARCH_STATUS=○&DEAL_FLAG=○", false);
 		checkResearchFile(researchIssues,messagesOut);
 		
-		Issue[] issuesforSource = getIssueInfo("(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
 				true);
 		//check source commit
 		checkSourceCommit(issuesforSource,messagesOut);
@@ -146,7 +149,7 @@ public class CheckFile {
 
 					if(isNumber(lastFinishDate)){
 						cal.set(1900, 0, 1);
-						cal.add(Calendar.DAY_OF_MONTH, (int)Double.parseDouble(lastFinishDate)-1);
+						cal.add(Calendar.DAY_OF_MONTH, (int)Double.parseDouble(lastFinishDate)-2);
 					} else {
 						String regex = "(\\d\\d\\d\\d)?[/-]?(1[0-2]|0?[1-9])[/-]([1-2][0-9]|3[0-1]|0?[1-9]|)";
 						
@@ -233,9 +236,9 @@ public class CheckFile {
 					}
 				} else {
 					if(CONSOLE){
-						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Waring: ソースではない" );
+						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Warning:ソースではない" );
 					}
-					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Waring: ソースではない" );
+					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Warning:ソースではない" );
 				}
 			}
 		}
@@ -474,6 +477,7 @@ public class CheckFile {
 			issues[i].setDelayComment(mapTarget[i].get(DELAY_COMMENT));
 			issues[i].setActualStartDate(mapTarget[i].get(ACTUAL_START_DATE));
 			issues[i].setActualFinishDate(mapTarget[i].get(ACTUAL_FINISH_DATE));
+			issues[i].setDealFlag(mapTarget[i].get(DEAL_FLAG));
 		}
 		
 		if(readModuleInfo){
