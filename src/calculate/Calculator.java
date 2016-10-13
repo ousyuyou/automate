@@ -11,7 +11,7 @@ public class Calculator {
 		// TODO Auto-generated method stub
 		String str = "((3+4)*2+2*5)-(5+10.5)/5";
 //		String str = "(abc>ab)&(3!2|2>1)";
-		
+
 		FormularParser parser = new FormularParser();
 		Calculator cal = new Calculator();
 		Stack<String> ope = parser.parse(str,true);

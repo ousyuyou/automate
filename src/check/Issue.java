@@ -8,6 +8,12 @@ public class Issue {
 	private String status;
 	private String reviewer;
 	private String researchStatus;
+	private String planFinishDate;
+	private String delay;
+	private String delayComment;
+	private String actualStartDate;
+	private String actualFinishDate;
+	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
 	private ArrayList<IssueModule> arrModules;
@@ -88,6 +94,46 @@ public class Issue {
 			arrModules = new ArrayList<IssueModule>();
 		}
 		arrModules.add(module);
+	}
+
+	public String getPlanFinishDate() {
+		return planFinishDate;
+	}
+
+	public void setPlanFinishDate(String planFinishDate) {
+		this.planFinishDate = planFinishDate;
+	}
+
+	public String getDelay() {
+		return delay;
+	}
+
+	public void setDelay(String delay) {
+		this.delay = delay;
+	}
+
+	public String getDelayComment() {
+		return delayComment;
+	}
+
+	public void setDelayComment(String delayComment) {
+		this.delayComment = delayComment;
+	}
+
+	public String getActualStartDate() {
+		return actualStartDate;
+	}
+
+	public void setActualStartDate(String actualStartDate) {
+		this.actualStartDate = actualStartDate;
+	}
+
+	public String getActualFinishDate() {
+		return actualFinishDate;
+	}
+
+	public void setActualFinishDate(String actualFinishDate) {
+		this.actualFinishDate = actualFinishDate;
 	}
 
 }

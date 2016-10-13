@@ -93,6 +93,7 @@ public class FormularParser {
 				if(opeCurrent.getPriority() > ope.getPriority() ||
 						ope.getOperator() == '(' ||
 						ope.getOperator() == ')' ){
+					operatorStack.push(ope);//push back
 					break;
 				}
 				operandStack.push(String.valueOf(ope.getOperator()));

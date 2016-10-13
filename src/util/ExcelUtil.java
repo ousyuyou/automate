@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
@@ -14,7 +13,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import calculate.*;
+
+import calculate.Calculator;
 
 public class ExcelUtil {
 	private static final int DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH = 2;
@@ -23,88 +23,6 @@ public class ExcelUtil {
 	
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	private static int index = 0;
-	public static final String CONNECT_CHAR = "&&";
-	
-	/**
-	 * 
-	 * @param fileName excel file path;the manager file's path
-	 * @param sheetNo:index from 0
-	 * @param destColAlpha:A,B,C
-	 * @param filterPattern:just support;for example C=OK&&D=100
-	 * @return
-	 * @throws IOException
-	 */
-	public static Map<String, String>[] readContentFromExcel(String fileName,int sheetNo,String destColAlpha,String filterPattern) throws IOException{
-		return readContentFromExcelMult(fileName,sheetNo,new String[]{destColAlpha},filterPattern);
-	}
-	
-	/**
-	 * 
-	 * @param fileName excel file path;the manager file's path
-	 * @param sheetNo:index from 0
-	 * @param destColAlpha:A,B,C
-	 * @param filterPattern:just support;for example C=OK&&D=100
-	 * @return  A=value1,B=value2...
-	 */
-	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,String[] destColAlphas,String columnAlphaFilter) throws IOException{
-		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
-		FileInputStream fileIn = null;
-		
-		try{
-			fileIn = new FileInputStream(fileName);
-	        Workbook wb = new XSSFWorkbook(new FileInputStream(fileName));
-	        Sheet sheet = wb.getSheetAt(sheetNo);
-	        
-	        //parse filterPattern,just support &&
-	        String[] strPatterns = columnAlphaFilter.split(CONNECT_CHAR);
-	        TreeMap<String, String> hashPattern = new TreeMap<String, String>();
-	        
-	        for(String str:strPatterns){
-	        	String[] split = str.split("=");
-	        	if(split.length == 2){
-	        		hashPattern.put(split[0], split[1]);
-	        	}
-	        }
-	        //init
-	        if(map == null || map.size() == 0){
-	        	setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
-	        }
-
-	        int[] destColNumbers = getColunIndexFromAlphaMult(destColAlphas); 
-	        for(int i = 0; i <= sheet.getLastRowNum();i++){
-	        	Row row = sheet.getRow(i);
-	        	boolean matchOk = true;
-	        	
-	        	for(String alphaIndex:hashPattern.keySet()){//filter by pattern
-	        		String value = "";
-	        		int columnIndex = getColunIndexFromAlpha(alphaIndex);
-	        		value = getCellValue(row, columnIndex);
-	        		
-	        		if(!matchValue(hashPattern.get(alphaIndex),value)){
-	        			matchOk = false;
-	        			break;
-	        		}
-	        	}
-	        	
-	        	if(matchOk){
-	        		TreeMap<String, String> map = new TreeMap<String, String>();
-	        		for(int j = 0 ; j < destColNumbers.length;j++){
-	        			map.put(destColAlphas[j], getCellValue(row, destColNumbers[j]));
-	        		}
-	        		
-	        		arrayTarget.add(map);
-	        	}
-	        }
-		} finally{
-			if(fileIn!=null){
-				fileIn.close();
-			}
-		}
-		Map[] mapArr = new TreeMap[arrayTarget.size()];
-		arrayTarget.toArray(mapArr);
-		return mapArr;
-	}
-	
 	/**
 	 * 
 	 * @param fileName excel file name
@@ -119,6 +37,7 @@ public class ExcelUtil {
 		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
 		FileInputStream fileIn = null;
 		
+//		System.out.println("fileName: "+fileName);
 		try{
 			fileIn = new FileInputStream(fileName);
 	        Workbook wb = new XSSFWorkbook(new FileInputStream(fileName));
@@ -134,23 +53,26 @@ public class ExcelUtil {
 	        
 	        for(int i = 0; i <= sheet.getLastRowNum();i++){
 	        	Row row = sheet.getRow(i);
-	        	String strCalculate = new String(columnNameFilterExpress);
-	        	for(String columnName:destColIndexs.keySet()){
-	        		if(columnNameFilterExpress.contains(columnName)){
-	        			int columnIndex = destColIndexs.get(columnName).intValue();
-	        			String value = getCellValue(row, columnIndex);
-	        			//replace "" blank to " " for calculate
-	        			if(StringUtils.isBlank(value)){
-	        				value = " ";
-	        			}
-	        			strCalculate = strCalculate.replaceAll(columnName, value);
-	        		}
+	        	String calculateValue = "";
+	        	
+	        	if(!StringUtils.isBlank(columnNameFilterExpress)){//filter calculate
+		        	String strCalculate = new String(columnNameFilterExpress);
+		        	for(String columnName:destColIndexs.keySet()){
+		        		if(columnNameFilterExpress.contains(columnName)){
+		        			int columnIndex = destColIndexs.get(columnName).intValue();
+		        			String cellValue = escapeString(getCellValue(row, columnIndex));
+		        			//replace "" blank to " " for calculate
+		        			if(StringUtils.isBlank(cellValue)){
+		        				cellValue = " ";
+		        			}
+		        			strCalculate = strCalculate.replaceAll(columnName, cellValue);
+		        		}
+		        	}
+		    		calculateValue = Calculator.calculate(strCalculate,false);
 	        	}
-//	        	System.out.print(strCalculate);
-	    		String value = Calculator.calculate(strCalculate,false);
-//	    		System.out.println(" value "+value);
-	    		
-	        	if("1".equals(value)){
+	        	
+	        	if(StringUtils.isBlank(columnNameFilterExpress) || 
+	        			"1".equals(calculateValue)){
 	        		TreeMap<String, String> map = new TreeMap<String, String>();
 	        		
 	        		for(String columnName:destColNames.keySet()){
@@ -159,6 +81,8 @@ public class ExcelUtil {
 	        		
 	        		arrayTarget.add(map);
 	        	}
+	    		
+
 	        }
 		} finally{
 			if(fileIn!=null){
@@ -178,7 +102,12 @@ public class ExcelUtil {
 		}else {
    			switch(row.getCell(columnIndex).getCellType()){
         		case Cell.CELL_TYPE_NUMERIC:
-        			value = String.valueOf(row.getCell(columnIndex).getNumericCellValue()).trim();
+        		case Cell.CELL_TYPE_FORMULA:
+        			try{
+        				value = String.valueOf(row.getCell(columnIndex).getNumericCellValue()).trim();
+        			} catch(IllegalStateException e){
+        				value = String.valueOf(row.getCell(columnIndex).getRichStringCellValue()).trim();
+        			}
         			break;
         		default:
         			value = row.getCell(columnIndex).getStringCellValue().trim();
@@ -186,26 +115,6 @@ public class ExcelUtil {
    			}
 		}
 		return value;
-	}
-	
-	/**
-	 * get excel column index from column alpha name 
-	 * @param alpha
-	 * @return
-	 */
-	private static int[] getColunIndexFromAlphaMult(String[] alphas){
-		int[] indexs = new int[alphas.length];
-		
-		int i = 0;
-		for(String alpha:alphas){
-			indexs[i] = map.get(alpha.toUpperCase()).intValue();
-			i++;
-		}
-		return indexs;
-	}
-	
-	private static int getColunIndexFromAlpha(String alpha){
-		return getColunIndexFromAlphaMult(new String[]{alpha})[0]; 
 	}
 	
 	private static TreeMap<String, Integer> convertColumnAlphaToIndex(Map<String,String> destColNames){
@@ -219,12 +128,26 @@ public class ExcelUtil {
 	}
 	
 	/**
-	 * replace & with &amp;
+	 * replace keyword
 	 * @param in
 	 * @return
 	 */
-	public static String escapeAmp(String in){
-		return in.replaceAll("&", "&amp;");
+	public static String escapeString(String in){
+		String strOut = new String(in);
+		strOut = strOut.replaceAll("[&]", "and__escape");
+		strOut = strOut.replaceAll("[|]", "or__escape");
+		strOut = strOut.replaceAll("[(]", "leftbracket__escape");
+		strOut = strOut.replaceAll("[)]", "rightbracket__escape");
+		strOut = strOut.replaceAll("[+]", "plus__escape");
+		strOut = strOut.replaceAll("[-]", "minus__escape");
+		strOut = strOut.replaceAll("[*]", "mulpity__escape");
+		strOut = strOut.replaceAll("[/]", "divide__escape");
+		strOut = strOut.replaceAll("[=]", "equal__escape");
+		strOut = strOut.replaceAll("[!]", "notequal__escape");
+		strOut = strOut.replaceAll("[>]", "greater__escape");
+		strOut = strOut.replaceAll("[<]", "lesses__escape");
+		
+		return strOut;
 	}
 	
 	/**
@@ -232,21 +155,10 @@ public class ExcelUtil {
 	 * @param in
 	 * @return
 	 */
-	public static String unescapeAmp(String in){
-		return in.replaceAll("&amp;", "&");
-	}
-	/**
-	 * compare without upper or lower
-	 * @param patternValue
-	 * @param cellValue
-	 * @return
-	 */
-	private static boolean matchValue(String patternValue,String cellValue){
-		if(patternValue == cellValue || patternValue.toLowerCase().equals(cellValue.toLowerCase())){
-			return true;
-		}
-		return false;
-	}
+//	public static String unescapeAmp(String in){
+//		return in.replaceAll("&amp;", "&");
+//	}
+	
 	
 	private static String[] setColumnNameIndex(int digit,HashMap<String,Integer> out,int digitLoop){
 		ArrayList<String> arrayConnect = new ArrayList<String>();
