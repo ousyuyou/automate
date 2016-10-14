@@ -236,9 +236,9 @@ public class CheckFile {
 					}
 				} else {
 					if(CONSOLE){
-						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Warning:ソースではない" );
+						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
 					}
-					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Warning:ソースではない" );
+					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
 				}
 			}
 		}
@@ -327,7 +327,7 @@ public class CheckFile {
 		ArrayList<String> array = new ArrayList<String>();
 		//check change list
 		for(Map<String,String> map:changeList){
-			String regex = "(\\d+).\\d*";
+			String regex = "(\\d+)[.]?\\d*";
 			String no = "仕様変更" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
 			
 	    	if(!issueNoSet.contains(no)){
@@ -340,7 +340,7 @@ public class CheckFile {
 		}
 		
 		for(Map<String,String> map:mantisList){
-			String regex = "(\\d+).\\d*";
+			String regex = "(\\d+)[.]?\\d*";
 			String no = "mantis" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
 			
 	    	if(!issueNoSet.contains(no)){
