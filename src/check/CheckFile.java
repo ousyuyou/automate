@@ -49,6 +49,7 @@ public class CheckFile {
 	private static final boolean CONSOLE = true;
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
 
+	private static int REVIEW_KIGEN = 5;
 	/**
 	 * issue list
 	 */
@@ -98,17 +99,21 @@ public class CheckFile {
 		
 		ArrayList<String> messagesOut = new ArrayList<String>();
 		
-		Issue[] issues = getIssueInfo("RELEASE_STATUS=未リリース", false);
-		//check scopes
+		Issue[] issues = getIssueInfo("RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済", false);
+		//check scopes：仕様変更＆mantis
 		checkScope(issues,messagesOut);
-		issues = getIssueInfo("RELEASE_STATUS=未リリース&DEAL_FLAG=○", false);
-		//check research status
+		
+		//check scopes：受入課題、移行検証課題など
+//		checkScopeKadai(issues,messagesOut);
+		
+		issues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&DEAL_FLAG=○", false);
+		//check research status：調査要否
 		checkResearchStatus(issues,messagesOut);
-		//check finish date
-		checkFinishDate(issues,messagesOut);
+		//check finish date：予定完了日など
+		checkDate(issues,messagesOut);
 
-		//check research file
-		Issue[] researchIssues = getIssueInfo("RELEASE_STATUS=未リリース&RESEARCH_STATUS=○&DEAL_FLAG=○", false);
+		//check research file：調査必要な対応は調査ファイルが存在するか
+		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)", false);
 		checkResearchFile(researchIssues,messagesOut);
 		
 		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
@@ -121,7 +126,7 @@ public class CheckFile {
 				
 	}
 	
-	public static void checkFinishDate(Issue[] issues,ArrayList<String> messagesOut){
+	public static void checkDate(Issue[] issues,ArrayList<String> messagesOut){
 		for(Issue issue:issues){
 			if("内部結合済".equals(issue.getStatus()) || 
 					"内部結合完了".equals(issue.getStatus())){
@@ -132,7 +137,32 @@ public class CheckFile {
 					}
 					messagesOut.add(issue.getId() + "「開始実績日」または「完了実績日」未記載");
 
+				} else {
+					//check外部review期限
+					if("内部結合済".equals(issue.getStatus())){
+						String finishDate = issue.getActualFinishDate();
+						Calendar cal = getDateFromExcel(finishDate);
+
+						//5 days after
+						cal.add(Calendar.DAY_OF_MONTH, REVIEW_KIGEN);
+						
+						Calendar currDate = Calendar.getInstance();
+						currDate.setTimeInMillis(System.currentTimeMillis());
+						SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
+						switch(formater.format(cal.getTime()).compareTo(formater.format(currDate.getTime()))){
+							case 0:
+							case -1:
+								if(CONSOLE){
+									System.out.println(issue.getId() + " 内部完了日が"+REVIEW_KIGEN+"日過ぎたが、外部レビュー終わっていない");	
+								}
+								messagesOut.add(issue.getId() + " 内部完了日が"+REVIEW_KIGEN+"日過ぎたが、外部レビュー終わっていない");
+								break;
+							default:
+								break;
+						}
+					}
 				}
+				
 			} else {
 				if(StringUtils.isBlank(issue.getPlanFinishDate())){
 					if(CONSOLE){
@@ -143,29 +173,14 @@ public class CheckFile {
 					String[] planFinishDate = issue.getPlanFinishDate().replaceAll("\n", "").split("⇒|->");
 					String lastFinishDate = planFinishDate[planFinishDate.length-1];
 					
-					Calendar cal = Calendar.getInstance();
-					cal.setTimeInMillis(System.currentTimeMillis());
-					Calendar currDate = (Calendar)cal.clone();
-
-					if(isNumber(lastFinishDate)){
-						cal.set(1900, 0, 1);
-						cal.add(Calendar.DAY_OF_MONTH, (int)Double.parseDouble(lastFinishDate)-2);
-					} else {
-						String regex = "(\\d\\d\\d\\d)?[/-]?(1[0-2]|0?[1-9])[/-]([1-2][0-9]|3[0-1]|0?[1-9]|)";
-						
-						String ymd = lastFinishDate.replaceAll(regex, "$1,$2,$3");
-						String[] ymds = ymd.split(",");
-						       
-						
-						if(StringUtils.isBlank(ymds[0])){
-							cal.set(Calendar.MONTH, Integer.parseInt(ymds[1])-1);
-							cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(ymds[2]));
-						} else {
-							cal.set(Integer.parseInt(ymds[0]), Integer.parseInt(ymds[1])-1, Integer.parseInt(ymds[2]));
-						}
-					}
+					Calendar currDate = Calendar.getInstance();
+					currDate.setTimeInMillis(System.currentTimeMillis());
 					
-					switch(cal.compareTo(currDate)){
+					Calendar cal = getDateFromExcel(lastFinishDate);
+				
+					SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
+
+					switch(formater.format(cal.getTime()).compareTo(formater.format(currDate.getTime()))){
 						case 0:
 							if(CONSOLE){
 								System.out.println(issue.getId()+ " 予定完了日が到達している");
@@ -190,9 +205,33 @@ public class CheckFile {
 					}
 				}
 			}
-			
-			
 		}
+	}
+	
+	private static Calendar getDateFromExcel(String date){
+		Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(System.currentTimeMillis());
+//		Calendar currDate = (Calendar)cal.clone();
+		
+		if(isNumber(date)){
+			cal.set(1900, 0, 1);
+			cal.add(Calendar.DAY_OF_MONTH, (int)Double.parseDouble(date)-2);
+		} else {
+			String regex = "(\\d\\d\\d\\d)?[/-]?(1[0-2]|0?[1-9])[/-]([1-2][0-9]|3[0-1]|0?[1-9]|)";
+			
+			String ymd = date.replaceAll(regex, "$1,$2,$3");
+			String[] ymds = ymd.split(",");
+			       
+			
+			if(StringUtils.isBlank(ymds[0])){
+				cal.set(Calendar.MONTH, Integer.parseInt(ymds[1])-1);
+				cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(ymds[2]));
+			} else {
+				cal.set(Integer.parseInt(ymds[0]), Integer.parseInt(ymds[1])-1, Integer.parseInt(ymds[2]));
+			}
+		}
+		
+		return cal;
 	}
 	
 	public static void checkResearchStatus(Issue[] issues,ArrayList<String> messagesOut){
@@ -223,7 +262,7 @@ public class CheckFile {
 			
 			for(IssueModule module:modules){
 				if(sources.containsKey(module.getModulePath())){
-					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-30), getEndDate(), module.getIssueID());
+					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-90), getEndDate(), module.getIssueID());
 					if(list.size() ==0){
 						messagesOut.add(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
 						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
@@ -295,6 +334,58 @@ public class CheckFile {
 		}
 			
 	}
+	/**
+	 * check the change and mantis exists
+	 */
+	public static void checkScopeKadai(Issue[] issues,ArrayList<String> messageOut) throws IOException{
+		//check research file
+		String kadaiListFile1 = config.getPropertyValue("check", "kadai_list_file1");
+		updateSvn(kadaiListFile1);
+		String kadaiListFile2 = config.getPropertyValue("check", "kadai_list_file2");
+		updateSvn(kadaiListFile2);
+		
+		//change list
+		Map<String, String> listName = new HashMap<String, String>();
+		listName.put("no", "A");
+		listName.put("discuss_status", "I");
+		
+		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(kadaiListFile1, 0, listName, "discuss_status=ND確認|discuss_status=FS確認|discuss_status=完了");
+		Map<String, String>[] listKadai2 = ExcelUtil.readContentFromExcelMult(kadaiListFile2, 0, listName, "discuss_status=ND確認|discuss_status=FS確認|discuss_status=完了");
+		
+		HashSet<String> issueNoSet = new HashSet<String>();
+		for(Issue issue:issues){
+			issueNoSet.add(issue.getId());
+		}
+		
+		ArrayList<String> array = new ArrayList<String>();
+		//check change list
+		for(Map<String,String> map:listKadai1){
+			String regex = "(\\d+)[.]?\\d*";
+			String no = "受入課題" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
+			
+	    	if(!issueNoSet.contains(no)){
+	    		array.add(no);
+	    		if(CONSOLE){
+	    			System.out.println(no + " が案件状況一覧に存在しない");
+	    		}
+	    		messageOut.add(no + " が案件状況一覧に存在しない");
+	    	}
+		}
+		
+		for(Map<String,String> map:listKadai2){
+			String regex = "(\\d+)[.]?\\d*";
+			String no = "移行検証課題" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
+			
+	    	if(!issueNoSet.contains(no)){
+	    		array.add(no);
+	    		if(CONSOLE){
+	    			System.out.println(no + " が案件状況一覧に存在しない");
+	    		}
+	    		messageOut.add(no + " が案件状況一覧に存在しない");
+	    	}
+		}
+	}
+	
 	
 	/**
 	 * check the change and mantis exists

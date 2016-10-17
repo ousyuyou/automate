@@ -53,6 +53,8 @@ public class ExcelUtil {
 	        
 	        for(int i = 0; i <= sheet.getLastRowNum();i++){
 	        	Row row = sheet.getRow(i);
+	        	if(row == null)//bug fix,why null?
+	        		continue;
 	        	String calculateValue = "";
 	        	
 	        	if(!StringUtils.isBlank(columnNameFilterExpress)){//filter calculate
