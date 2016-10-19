@@ -104,7 +104,7 @@ public class CheckFile {
 		checkScope(issues,messagesOut);
 		
 		//check scopes：受入課題、移行検証課題など
-//		checkScopeKadai(issues,messagesOut);
+		checkScopeKadai(issues,messagesOut);
 		
 		issues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&DEAL_FLAG=○", false);
 		//check research status：調査要否
@@ -341,16 +341,13 @@ public class CheckFile {
 		//check research file
 		String kadaiListFile1 = config.getPropertyValue("check", "kadai_list_file1");
 		updateSvn(kadaiListFile1);
-		String kadaiListFile2 = config.getPropertyValue("check", "kadai_list_file2");
-		updateSvn(kadaiListFile2);
 		
 		//change list
 		Map<String, String> listName = new HashMap<String, String>();
-		listName.put("no", "A");
-		listName.put("discuss_status", "I");
+		listName.put("no", "DO");
+//		listName.put("discuss_status", "I");
 		
-		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(kadaiListFile1, 0, listName, "discuss_status=ND確認|discuss_status=FS確認|discuss_status=完了");
-		Map<String, String>[] listKadai2 = ExcelUtil.readContentFromExcelMult(kadaiListFile2, 0, listName, "discuss_status=ND確認|discuss_status=FS確認|discuss_status=完了");
+		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(kadaiListFile1, 0, listName, "no! ");
 		
 		HashSet<String> issueNoSet = new HashSet<String>();
 		for(Issue issue:issues){
@@ -358,32 +355,21 @@ public class CheckFile {
 		}
 		
 		ArrayList<String> array = new ArrayList<String>();
-		//check change list
+		//check kadai list
 		for(Map<String,String> map:listKadai1){
-			String regex = "(\\d+)[.]?\\d*";
-			String no = "受入課題" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
+			String[] nos = map.get("no").split("\\n");
 			
-	    	if(!issueNoSet.contains(no)){
-	    		array.add(no);
-	    		if(CONSOLE){
-	    			System.out.println(no + " が案件状況一覧に存在しない");
-	    		}
-	    		messageOut.add(no + " が案件状況一覧に存在しない");
-	    	}
+			for(String no:nos){
+		    	if(!issueNoSet.contains(no)){
+		    		array.add(no);
+		    		if(CONSOLE){
+		    			System.out.println(no + " が案件状況一覧に存在しない");
+		    		}
+		    		messageOut.add(no + " が案件状況一覧に存在しない");
+		    	}
+			}
 		}
 		
-		for(Map<String,String> map:listKadai2){
-			String regex = "(\\d+)[.]?\\d*";
-			String no = "移行検証課題" + map.get("no").replaceAll(regex, "$1");//replace 759.0 to 759
-			
-	    	if(!issueNoSet.contains(no)){
-	    		array.add(no);
-	    		if(CONSOLE){
-	    			System.out.println(no + " が案件状況一覧に存在しない");
-	    		}
-	    		messageOut.add(no + " が案件状況一覧に存在しない");
-	    	}
-		}
 	}
 	
 	

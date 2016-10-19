@@ -32,10 +32,12 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 public class SVNUtil {
 	private static Logger logger = Logger.getLogger(SVNUtil.class);
 	private static String svnRootPath = "";
-	private static ConfigFile config = null;
+	private static ConfigFile appConfig = null;
+	private static ConfigFile serverConfig = null;
 	static {
-		config = new ConfigFile(new File("e:/cert/config"));
-		svnRootPath = config.getPropertyValue("global", "svn_root_path");
+		appConfig = new ConfigFile(new File("e:/cert/config"));
+		serverConfig = new ConfigFile(new File("e:/cert/servers"));
+		svnRootPath = appConfig.getPropertyValue("global", "svn_root_path");
 	}
 	private static File CERT_FILE_PATH = new File("e:/cert/");
 	private static final boolean DEBUG = false;
@@ -45,16 +47,17 @@ public class SVNUtil {
 	 */
 	public static void main(String[] args) throws SVNException{
 		// TODO Auto-generated method stub
-		String configListFile = config.getPropertyValue("check", "change_list_file");
+//		String configListFile = config.getPropertyValue("check", "change_list_file");
+//		
+//		getHistory(configListFile);
 		
-		getHistory(configListFile);
-//		checkOutFromSVN();
+		String url = "xxx";
+		checkOutFromSVN(url,"e:/svntest");
 	}
 	
 	 public static void checkOutFromSVN(String svnUrl,String localFile) throws SVNException {
-	        System.setProperty("javax.net.debug", "all");
+//	        System.setProperty("javax.net.debug", "all");
 	        System.setProperty("svnkit.http.sslProtocols", "SSLv3");
-//	        setupLibrary();
 	        
 	        SVNURL url = SVNURL.parseURIEncoded(svnUrl);
 	        SVNClientManager clientManager = authSvn(svnRootPath,CERT_FILE_PATH);
@@ -89,15 +92,16 @@ public class SVNUtil {
         }  
         //from jre 7,SSLv3 is not supported;when use,change the java.security setting
         System.setProperty("svnkit.http.sslProtocols", "SSLv3");
-//        System.setProperty("javax.net.debug", "all");
         System.setProperty("https.protocols", "SSLv3,SSLv2Hello");
-//        System.setProperty("javax.net.ssl.trustStore", "d:/cert/ca.crt");
         
-        // auth
-        ISVNAuthenticationManager authManager = 
-        		SVNWCUtil.createDefaultAuthenticationManager(certSavePath);
+//        serverFileConfig = new ConfigFile(new File("e:/cert/server"));
+        String name = serverConfig.getPropertyValue("global", "http-proxy-username");
+        String password = serverConfig.getPropertyValue("global", "http-proxy-password");
         //first time,this is necessary
-//        SVNWCUtil.createDefaultAuthenticationManager(certSavePath, "username", "password", true);
+        ISVNAuthenticationManager authManager = SVNWCUtil.createDefaultAuthenticationManager(certSavePath, name, password, true);
+        // auth
+//        ISVNAuthenticationManager authManager = 
+//        		SVNWCUtil.createDefaultAuthenticationManager(certSavePath);
         
         repository.setAuthenticationManager(authManager);
         
