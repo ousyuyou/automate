@@ -121,9 +121,53 @@ public class CheckFile {
 		//check source commit
 		checkSourceCommit(issuesforSource,messagesOut);
 		//check ut test file
-		
+		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+				true);
+		checkUT(issuesforUT,messagesOut);
 		//check si test file
 				
+	}
+	
+	public static void checkUT(Issue[] issues,ArrayList<String> messagesOut){
+		//check source commit
+		HashMap<String, String> sources = listSources();
+		
+		for(Issue issue:issues){
+			IssueModule[] modules = issue.getModules();
+			
+			if(modules.length == 0){
+				if(CONSOLE){
+					System.out.println(issue.getId()+ " がモジュール一覧に存在しない");
+				}
+				messagesOut.add(issue.getId()+ " がモジュール一覧に存在しない");
+				
+			}
+			
+//			for(IssueModule module:modules){
+//				if(sources.containsKey(module.getModulePath())){
+//					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-90), getEndDate(), module.getIssueID());
+//					if(list.size() ==0){
+//						messagesOut.add(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
+//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
+//					}else{
+////						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
+//					}
+//					
+//					if(DEBUG){
+//						printLog(list);
+//					}
+//				} else {
+//					if(CONSOLE){
+//						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
+//					}
+//					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
+//				}
+//			}
+		}
+	}
+	
+	public static void checkST(){
+		
 	}
 	
 	public static void checkDate(Issue[] issues,ArrayList<String> messagesOut){
@@ -170,6 +214,7 @@ public class CheckFile {
 					}
 					messagesOut.add(issue.getId() + "「完了予定日」未記載");
 				} else {
+					//check finish date
 					String[] planFinishDate = issue.getPlanFinishDate().replaceAll("\n", "").split("⇒|->");
 					String lastFinishDate = planFinishDate[planFinishDate.length-1];
 					
@@ -203,6 +248,8 @@ public class CheckFile {
 						case 1:
 							break;
 					}
+					//TODO check start date,status&period
+					
 				}
 			}
 		}
@@ -302,20 +349,20 @@ public class CheckFile {
 		Arrays.sort(strResult);
 		ArrayList<String> out = new ArrayList<String>();
 		
-		int startIndex=0;
+		int startIndex = 0;
 		for(int i = 0; i < strTarget.length;i++){
 			boolean match = false;
 			
 			for(int j=startIndex;j <strResult.length;j++){
 				if(strResult[j].contains(strTarget[i])){
-					swap(strResult,j,startIndex);
-					startIndex++;
+//					swap(strResult,j,startIndex);
+//					startIndex++; //一つの調査結果に複数の案件番号が含まれているため、一回当てても対象外にならない
 					match = true;
 					break;
 				}
 			}
 			
-			if(match==false){
+			if(match == false){
 				out.add(strTarget[i]);
 			}
 		}
