@@ -8,6 +8,7 @@ public class Issue {
 	private String status;
 	private String reviewer;
 	private String researchStatus;
+	private String planStartDate;
 	private String planFinishDate;
 	private String delay;
 	private String delayComment;
@@ -143,6 +144,14 @@ public class Issue {
 
 	public void setDealFlag(String dealFlag) {
 		this.dealFlag = dealFlag;
+	}
+
+	public String getPlanStartDate() {
+		return planStartDate;
+	}
+
+	public void setPlanStartDate(String planStartDate) {
+		this.planStartDate = planStartDate;
 	}
 
 }

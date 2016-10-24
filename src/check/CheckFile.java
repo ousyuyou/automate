@@ -40,6 +40,7 @@ public class CheckFile {
 	private static final String PROJECT_ID = "PROJECT_ID";
 	private static final String FUNCTION_NAME = "FUNCTION_NAME";
 	private static final String PLAN_FINISH_DATE = "PLAN_FINISH_DATE";
+	private static final String PLAN_START_DATE = "PLAN_START_DATE";
 	private static final String DELAY_STATUS = "DELAY_STATUS";
 	private static final String DELAY_COMMENT = "DELAY_COMMENT";
 	private static final String ACTUAL_START_DATE = "ACTUAL_START_DATE";
@@ -61,6 +62,7 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_OWNER_ID, "J");
 		columnNameMapIssueList.put(RESEARCH_STATUS, "M");
 		columnNameMapIssueList.put(RELEASE_STATUS, "V");
+		columnNameMapIssueList.put(PLAN_START_DATE, "P");//
 		columnNameMapIssueList.put(PLAN_FINISH_DATE, "Q");
 		columnNameMapIssueList.put(DELAY_STATUS, "R");
 		columnNameMapIssueList.put(DELAY_COMMENT, "U");
@@ -123,7 +125,7 @@ public class CheckFile {
 		//check ut test file
 		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
 				true);
-		checkUT(issuesforUT,messagesOut);
+//		checkUT(issuesforUT,messagesOut);
 		//check si test file
 				
 	}
@@ -208,6 +210,10 @@ public class CheckFile {
 				}
 				
 			} else {
+				Calendar currDate = Calendar.getInstance();
+				currDate.setTimeInMillis(System.currentTimeMillis());
+				SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
+
 				if(StringUtils.isBlank(issue.getPlanFinishDate())){
 					if(CONSOLE){
 						System.out.println(issue.getId() + "「完了予定日」未記載");	
@@ -218,14 +224,9 @@ public class CheckFile {
 					String[] planFinishDate = issue.getPlanFinishDate().replaceAll("\n", "").split("⇒|->");
 					String lastFinishDate = planFinishDate[planFinishDate.length-1];
 					
-					Calendar currDate = Calendar.getInstance();
-					currDate.setTimeInMillis(System.currentTimeMillis());
-					
-					Calendar cal = getDateFromExcel(lastFinishDate);
-				
-					SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
+					Calendar calFinishDate = getDateFromExcel(lastFinishDate);
 
-					switch(formater.format(cal.getTime()).compareTo(formater.format(currDate.getTime()))){
+					switch(formater.format(calFinishDate.getTime()).compareTo(formater.format(currDate.getTime()))){
 						case 0:
 							if(CONSOLE){
 								System.out.println(issue.getId()+ " 予定完了日が到達している");
@@ -248,8 +249,20 @@ public class CheckFile {
 						case 1:
 							break;
 					}
-					//TODO check start date,status&period
+				}
+				//check plan start date
+				if(StringUtils.isBlank(issue.getStatus()) || "未着手".equals(issue.getStatus())){
+					String startDate = issue.getPlanStartDate();
 					
+					Calendar calPlanStart = getDateFromExcel(startDate);
+					switch(formater.format(calPlanStart.getTime()).compareTo(formater.format(currDate.getTime()))){
+						case -1:
+							if(CONSOLE){
+								System.out.println(issue.getId()+ " 予定開始日が過ぎているが、未着手");
+							}
+							messagesOut.add(issue.getId()+ " 予定開始日が過ぎているが、未着手");
+							break;
+					}
 				}
 			}
 		}
@@ -596,6 +609,7 @@ public class CheckFile {
 			issues[i].setOwner(mapTarget[i].get(ISSUE_OWNER_ID));
 			issues[i].setStatus(mapTarget[i].get(ISSUE_STATUS));
 			issues[i].setResearchStatus(mapTarget[i].get(RESEARCH_STATUS));
+			issues[i].setPlanStartDate(mapTarget[i].get(PLAN_START_DATE));
 			issues[i].setPlanFinishDate(mapTarget[i].get(PLAN_FINISH_DATE));
 			issues[i].setDelay(mapTarget[i].get(DELAY_STATUS));
 			issues[i].setDelayComment(mapTarget[i].get(DELAY_COMMENT));
