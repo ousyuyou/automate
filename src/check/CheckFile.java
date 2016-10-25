@@ -61,13 +61,13 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_STATUS, "N");
 		columnNameMapIssueList.put(ISSUE_OWNER_ID, "J");
 		columnNameMapIssueList.put(RESEARCH_STATUS, "M");
-		columnNameMapIssueList.put(RELEASE_STATUS, "V");
-		columnNameMapIssueList.put(PLAN_START_DATE, "P");//
-		columnNameMapIssueList.put(PLAN_FINISH_DATE, "Q");
-		columnNameMapIssueList.put(DELAY_STATUS, "R");
-		columnNameMapIssueList.put(DELAY_COMMENT, "U");
-		columnNameMapIssueList.put(ACTUAL_START_DATE, "S");
-		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "T");
+		columnNameMapIssueList.put(RELEASE_STATUS, "W");
+		columnNameMapIssueList.put(PLAN_START_DATE, "Q");//
+		columnNameMapIssueList.put(PLAN_FINISH_DATE, "R");
+		columnNameMapIssueList.put(DELAY_STATUS, "S");
+		columnNameMapIssueList.put(DELAY_COMMENT, "V");
+		columnNameMapIssueList.put(ACTUAL_START_DATE, "T");
+		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "U");
 		columnNameMapIssueList.put(DEAL_FLAG, "L");
 	}
 	/**
@@ -115,15 +115,18 @@ public class CheckFile {
 		checkDate(issues,messagesOut);
 
 		//check research file：調査必要な対応は調査ファイルが存在するか
-		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)", false);
+		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)", false);
 		checkResearchFile(researchIssues,messagesOut);
 		
-		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
 				true);
 		//check source commit
 		checkSourceCommit(issuesforSource,messagesOut);
 		//check ut test file
-		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|"+
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
 				true);
 //		checkUT(issuesforUT,messagesOut);
 		//check si test file
@@ -251,7 +254,8 @@ public class CheckFile {
 					}
 				}
 				//check plan start date
-				if(StringUtils.isBlank(issue.getStatus()) || "未着手".equals(issue.getStatus())){
+				if((StringUtils.isBlank(issue.getStatus()) || "未着手".equals(issue.getStatus())) &&
+						!StringUtils.isBlank(issue.getPlanStartDate())){
 					String startDate = issue.getPlanStartDate();
 					
 					Calendar calPlanStart = getDateFromExcel(startDate);
