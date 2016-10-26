@@ -172,7 +172,7 @@ public class SVNUtil {
         		new ISVNLogEntryHandler(){
         			public void handleLogEntry(SVNLogEntry logEntry) throws SVNException{
         				if(StringUtils.isNotBlank(messageFilter)){
-        					if(logEntry.getMessage().contains(messageFilter)){
+        					if(logEntry.getMessage().toUpperCase().contains(messageFilter.toUpperCase())){//case insensitive
         						history.add(logEntry);
         					} else {
         						if(DEBUG){

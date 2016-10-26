@@ -15,6 +15,7 @@ public class Issue {
 	private String actualStartDate;
 	private String actualFinishDate;
 	private String dealFlag;
+	private String ikouResource;
 	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
@@ -152,6 +153,14 @@ public class Issue {
 
 	public void setPlanStartDate(String planStartDate) {
 		this.planStartDate = planStartDate;
+	}
+
+	public String getIkouResource() {
+		return ikouResource;
+	}
+
+	public void setIkouResource(String ikouResource) {
+		this.ikouResource = ikouResource;
 	}
 
 }

@@ -46,6 +46,8 @@ public class CheckFile {
 	private static final String ACTUAL_START_DATE = "ACTUAL_START_DATE";
 	private static final String ACTUAL_FINISH_DATE = "ACTUAL_FINISH_DATE";
 	private static final String DEAL_FLAG = "DEAL_FLAG";
+	private static final String IKOU_RESOURCE = "IKOU_RESOURCE";
+	
 	private static final boolean DEBUG = false;
 	private static final boolean CONSOLE = true;
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
@@ -69,6 +71,7 @@ public class CheckFile {
 		columnNameMapIssueList.put(ACTUAL_START_DATE, "T");
 		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "U");
 		columnNameMapIssueList.put(DEAL_FLAG, "L");
+		columnNameMapIssueList.put(IKOU_RESOURCE, "AA");
 	}
 	/**
 	 * module list,source
@@ -115,21 +118,24 @@ public class CheckFile {
 		checkDate(issues,messagesOut);
 
 		//check research file：調査必要な対応は調査ファイルが存在するか
+		//移行関連修正案件は調査ファイルが別対応のため、チェック対象外
 		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
-				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)", false);
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○", false);
 		checkResearchFile(researchIssues,messagesOut);
 		
+		//移行関連修正案件は別PRJのため、チェック対象外
 		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
-				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○",
 				true);
 		//check source commit
 		checkSourceCommit(issuesforSource,messagesOut);
-		//check ut test file
-		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|"+
-				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
-				true);
-//		checkUT(issuesforUT,messagesOut);
 		//check si test file
+
+		//check ut test file
+//		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|"+
+//				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+//				true);
+//		checkUT(issuesforUT,messagesOut);
 				
 	}
 	
@@ -620,6 +626,7 @@ public class CheckFile {
 			issues[i].setActualStartDate(mapTarget[i].get(ACTUAL_START_DATE));
 			issues[i].setActualFinishDate(mapTarget[i].get(ACTUAL_FINISH_DATE));
 			issues[i].setDealFlag(mapTarget[i].get(DEAL_FLAG));
+			issues[i].setIkouResource(mapTarget[i].get(IKOU_RESOURCE));
 		}
 		
 		if(readModuleInfo){
