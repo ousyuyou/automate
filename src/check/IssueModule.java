@@ -16,6 +16,11 @@ public class IssueModule {
 	 */
 	private String projectID;
 	private String functionName;
+	/**
+	 * 1:java source,pdf xml
+	 * 2:shell,db,code list
+	 */
+	private int modelType;
 	
 	public IssueModule(){
 		
@@ -49,5 +54,11 @@ public class IssueModule {
 	}
 	public void setFunctionName(String functionName) {
 		this.functionName = functionName;
+	}
+	public int getModelType() {
+		return modelType;
+	}
+	public void setModelType(int modelType) {
+		this.modelType = modelType;
 	}
 }

@@ -5,6 +5,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,11 +17,14 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JTable.PrintMode;
+
 import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNLogEntryPath;
 
+import sun.misc.Regexp;
 import svn.ConfigFile;
 import svn.SVNUtil;
 import util.ExcelUtil;
@@ -53,6 +58,7 @@ public class CheckFile {
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
 
 	private static int REVIEW_KIGEN = 5;
+	private static ArrayList<String> messageOut = new ArrayList<String>();
 	/**
 	 * issue list
 	 */
@@ -102,33 +108,40 @@ public class CheckFile {
 	 */
 	public static void main(String[] args) throws IOException,SVNException{
 		
-		ArrayList<String> messagesOut = new ArrayList<String>();
 		
 		Issue[] issues = getIssueInfo("RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済", false);
 		//check scopes：仕様変更＆mantis
-		checkScope(issues,messagesOut);
+		checkScope(issues);
 		
 		//check scopes：受入課題、移行検証課題など
-		checkScopeKadai(issues,messagesOut);
+		checkScopeKadai(issues);
 		
 		issues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&DEAL_FLAG=○", false);
 		//check research status：調査要否
-		checkResearchStatus(issues,messagesOut);
+		checkResearchStatus(issues);
 		//check finish date：予定完了日など
-		checkDate(issues,messagesOut);
+		checkDate(issues);
 
 		//check research file：調査必要な対応は調査ファイルが存在するか
 		//移行関連修正案件は調査ファイルが別対応のため、チェック対象外
 		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
 				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○", false);
-		checkResearchFile(researchIssues,messagesOut);
+		Map<String,ResearchResult> results = checkResearchFile(researchIssues);
+		
+//		for(ResearchResult result:results.values()){
+//			System.out.println(result.getIssueId());
+//			System.out.println(result.getModules().length);
+//			System.out.println(result.getFunctions().length);
+//		}
 		
 		//移行関連修正案件は別PRJのため、チェック対象外
 		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
 				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○",
 				true);
+		//compare research modules with
+		checkModules(issuesforSource,results);
 		//check source commit
-		checkSourceCommit(issuesforSource,messagesOut);
+		checkSourceCommit(issuesforSource);
 		//check si test file
 
 		//check ut test file
@@ -138,8 +151,33 @@ public class CheckFile {
 //		checkUT(issuesforUT,messagesOut);
 				
 	}
+
+	public static void checkModules(Issue[] issues,Map<String,ResearchResult> results){
+		for(Issue issue:issues){
+			IssueModule[] models = issue.getModules();
+			if(results.get(issue.getId()) == null){
+				if("○".equals(issue.getResearchStatus())){
+					printMessage(issue.getId()+ " 調査結果ファイルにモジュールが記載されていない");
+				}
+				continue;
+			}
+			IssueModule[] researchModules = results.get(issue.getId()).getModules();
 	
-	public static void checkUT(Issue[] issues,ArrayList<String> messagesOut){
+			HashSet<String> set = new HashSet<String>();
+			for(IssueModule module:researchModules){
+				set.add(module.getModuleID());
+			}
+			
+			for(IssueModule module:models){
+				if(!set.contains(module.getModuleID())){
+					printMessage(issue.getId()+ " " +module.getModuleID()+ " 資材一覧と調査結果モジュールが不一致");
+				}
+			}
+		}
+		
+	}
+	
+	public static void checkUT(Issue[] issues){
 		//check source commit
 		HashMap<String, String> sources = listSources();
 		
@@ -147,10 +185,7 @@ public class CheckFile {
 			IssueModule[] modules = issue.getModules();
 			
 			if(modules.length == 0){
-				if(CONSOLE){
-					System.out.println(issue.getId()+ " がモジュール一覧に存在しない");
-				}
-				messagesOut.add(issue.getId()+ " がモジュール一覧に存在しない");
+				printMessage(issue.getId()+ " がモジュール一覧に存在しない");
 				
 			}
 			
@@ -181,16 +216,13 @@ public class CheckFile {
 		
 	}
 	
-	public static void checkDate(Issue[] issues,ArrayList<String> messagesOut){
+	public static void checkDate(Issue[] issues){
 		for(Issue issue:issues){
 			if("内部結合済".equals(issue.getStatus()) || 
 					"内部結合完了".equals(issue.getStatus())){
 				if(StringUtils.isBlank(issue.getActualStartDate()) ||
 						StringUtils.isBlank(issue.getActualFinishDate())){
-					if(CONSOLE){
-						System.out.println(issue.getId() + "「開始実績日」または「完了実績日」未記載");	
-					}
-					messagesOut.add(issue.getId() + "「開始実績日」または「完了実績日」未記載");
+					printMessage(issue.getId() + "「開始実績日」または「完了実績日」未記載");
 
 				} else {
 					//check外部review期限
@@ -207,10 +239,7 @@ public class CheckFile {
 						switch(formater.format(cal.getTime()).compareTo(formater.format(currDate.getTime()))){
 							case 0:
 							case -1:
-								if(CONSOLE){
-									System.out.println(issue.getId() + " 内部完了日が"+REVIEW_KIGEN+"日過ぎたが、外部レビュー終わっていない");	
-								}
-								messagesOut.add(issue.getId() + " 内部完了日が"+REVIEW_KIGEN+"日過ぎたが、外部レビュー終わっていない");
+								printMessage(issue.getId() + " 内部完了日が"+REVIEW_KIGEN+"日過ぎたが、外部レビュー終わっていない");
 								break;
 							default:
 								break;
@@ -224,10 +253,7 @@ public class CheckFile {
 				SimpleDateFormat formater = new SimpleDateFormat("yyyy-MM-dd");
 
 				if(StringUtils.isBlank(issue.getPlanFinishDate())){
-					if(CONSOLE){
-						System.out.println(issue.getId() + "「完了予定日」未記載");	
-					}
-					messagesOut.add(issue.getId() + "「完了予定日」未記載");
+					printMessage(issue.getId() + "「完了予定日」未記載");
 				} else {
 					//check finish date
 					String[] planFinishDate = issue.getPlanFinishDate().replaceAll("\n", "").split("⇒|->");
@@ -237,23 +263,10 @@ public class CheckFile {
 
 					switch(formater.format(calFinishDate.getTime()).compareTo(formater.format(currDate.getTime()))){
 						case 0:
-							if(CONSOLE){
-								System.out.println(issue.getId()+ " 予定完了日が到達している");
-							}
-							messagesOut.add(issue.getId()+ " 予定完了日が到達している");
+							printMessage(issue.getId()+ " 予定完了日が到達している");
 							break;
 						case -1:
-							if(CONSOLE){
-								System.out.println(issue.getId()+ " 予定完了日が過ぎている");
-							}
-							messagesOut.add(issue.getId()+ " 予定完了日が過ぎている");
-							
-							if(StringUtils.isBlank(issue.getDelay()) || StringUtils.isBlank(issue.getDelayComment())){
-								if(CONSOLE){
-									System.out.println(issue.getId()+ " 遅延状況または遅延理由対策が記載していない");
-								}
-								messagesOut.add(issue.getId()+ " 遅延状況または遅延理由対策が記載していない");
-							}
+							printMessage(issue.getId()+ " 予定完了日が過ぎている");
 							break;
 						case 1:
 							break;
@@ -267,10 +280,7 @@ public class CheckFile {
 					Calendar calPlanStart = getDateFromExcel(startDate);
 					switch(formater.format(calPlanStart.getTime()).compareTo(formater.format(currDate.getTime()))){
 						case -1:
-							if(CONSOLE){
-								System.out.println(issue.getId()+ " 予定開始日が過ぎているが、未着手");
-							}
-							messagesOut.add(issue.getId()+ " 予定開始日が過ぎているが、未着手");
+							printMessage(issue.getId()+ " 予定開始日が過ぎているが、未着手");
 							break;
 					}
 				}
@@ -304,18 +314,15 @@ public class CheckFile {
 		return cal;
 	}
 	
-	public static void checkResearchStatus(Issue[] issues,ArrayList<String> messagesOut){
+	public static void checkResearchStatus(Issue[] issues){
 		for(Issue issue:issues){
 			if(StringUtils.isBlank(issue.getResearchStatus())){
-				if(CONSOLE){
-					System.out.println(issue.getId() + "「調査要否」未記載");
-				}
-				messagesOut.add(issue.getId() + "「調査要否」未記載");
+				printMessage(issue.getId() + "「調査要否」未記載");
 			}
 		}
 	}
 	
-	public static void checkSourceCommit(Issue[] issues,ArrayList<String> messagesOut) throws SVNException{
+	public static void checkSourceCommit(Issue[] issues) throws SVNException{
 		//check source commit
 		HashMap<String, String> sources = listSources();
 		
@@ -323,19 +330,15 @@ public class CheckFile {
 			IssueModule[] modules = issue.getModules();
 			
 			if(modules.length == 0){
-				if(CONSOLE){
-					System.out.println(issue.getId()+ " がモジュール一覧に存在しない");
-				}
-				messagesOut.add(issue.getId()+ " がモジュール一覧に存在しない");
-				
+				printMessage(issue.getId()+ " がモジュール一覧に存在しない");
+			
 			}
 			
 			for(IssueModule module:modules){
 				if(sources.containsKey(module.getModulePath())){
 					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-90), getEndDate(), module.getIssueID());
 					if(list.size() ==0){
-						messagesOut.add(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
-						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
+						printMessage(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
 					}else{
 //						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
 					}
@@ -344,24 +347,26 @@ public class CheckFile {
 						printLog(list);
 					}
 				} else {
-					if(CONSOLE){
-						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
-					}
-					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
+					printMessage(module.getIssueID() +" "+ module.getModuleID()+"\\"+module.getModulePath() + " Info:ソースではない");
 				}
 			}
 		}
 	}
 	
-	public static void checkResearchFile(Issue[] issues,ArrayList<String> messageOut){
+	public static Map<String,ResearchResult> checkResearchFile(Issue[] issues) throws IOException{
+		Map<String,ResearchResult> mapResearchResult = new HashMap<String, ResearchResult>();
+//		ArrayList<ResearchResult> arrResearchResult = new ArrayList<ResearchResult>();
+		
 		//update svn
 		String researchFilePath = config.getPropertyValue("check", "research_result_path");
 		updateSvn(researchFilePath);
 		
-		ArrayList<String> arrResult = new ArrayList<String>();
-		FileUtil.listFiles(new File(researchFilePath), arrResult);
-		String[] strResult = new String[arrResult.size()]; 
-		arrResult.toArray(strResult);
+		ArrayList<File> arrResult = new ArrayList<File>();
+		FileUtil.listAbsoluteFiles(new File(researchFilePath), arrResult);
+		String[] strPaths = new String[arrResult.size()]; 
+		for(int i = 0 ;i < strPaths.length;i++){
+			strPaths[i] = arrResult.get(i).getAbsolutePath();
+		}
 		
 		String[] strTarget = new String[issues.length];
 		for(int i = 0 ; i< strTarget.length;i++){
@@ -369,19 +374,64 @@ public class CheckFile {
 		}
 		
 		Arrays.sort(strTarget);
-		Arrays.sort(strResult);
+		Arrays.sort(strPaths);
 		ArrayList<String> out = new ArrayList<String>();
 		
 		int startIndex = 0;
 		for(int i = 0; i < strTarget.length;i++){
 			boolean match = false;
 			
-			for(int j=startIndex;j <strResult.length;j++){
-				if(strResult[j].contains(strTarget[i])){
+			for(int j=startIndex;j <strPaths.length;j++){
+				String regex = ".+\\\\(.+)$";
+				String fileName = strPaths[j].replaceAll(regex, "$1");
+				if(fileName.contains(strTarget[i])){
+					ResearchResult result = null;
+					if(mapResearchResult.containsKey(strTarget[i])){
+						result = mapResearchResult.get(strTarget[i]);
+					} else {
+						result = new ResearchResult(strTarget[i]);
+					}
 //					swap(strResult,j,startIndex);
 //					startIndex++; //一つの調査結果に複数の案件番号が含まれているため、一回当てても対象外にならない
 					match = true;
-					break;
+					
+					//read research file info;modules and test functions
+					//module name,module path
+					Map<String, String> listColNames = new HashMap<String, String>();
+					listColNames.put(MODULE_ID, "B");
+					listColNames.put(MODULE_PATH, "C");
+					//set research file's modules
+//					System.out.println(strTarget[i]+" "+strResult[j]);
+					try{
+						Map<String, String>[] modules = ExcelUtil.readContentFromExcelMult(strPaths[j], 0, listColNames, "MODULE_ID! ",1);
+						for(Map<String,String> map:modules){
+							IssueModule module = new IssueModule();
+							module.setIssueID(strTarget[i]);
+							module.setModuleID(map.get(MODULE_ID));
+							module.setModulePath(map.get(MODULE_PATH));
+							if(StringUtils.isBlank(map.get(MODULE_PATH))){
+								module.setModulePath(map.get(MODULE_ID));
+							}
+							result.addIssueModule(module);
+						}
+						//set research file's test functions
+						listColNames = new HashMap<String, String>();
+						listColNames.put(FUNCTION_NAME, "B");
+						//TODO
+						Map<String, String>[] functions = ExcelUtil.readContentFromExcelMult(strPaths[j], 1, listColNames, "FUNCTION_NAME! ",1);
+						for(Map<String,String> map:functions){
+							IssueFunction function = new IssueFunction();
+							function.setIssueID(strTarget[i]);
+							function.setFunctionName(map.get(FUNCTION_NAME));
+							result.addIssueFunction(function);
+						}
+					}catch(Exception e){
+						System.err.println(strTarget[i] +" "+ strPaths[j] + " read excel error");
+//						e.printStackTrace();
+					}
+					mapResearchResult.put(strTarget[i], result);
+
+//					arrResearchResult.add(result);
 				}
 			}
 			
@@ -391,23 +441,19 @@ public class CheckFile {
 		}
 		
 		for(String str:out){
-			if(CONSOLE){
-				System.out.println(str + " 調査結果ファイルが存在しない");
-			}
-			messageOut.add(str + " 調査結果ファイルが存在しない");
+			printMessage(str + " 調査結果ファイルが存在しない");
 		}
 		if(out.size() == 0){
-			if(CONSOLE){
-				System.out.println("Info:調査結果ファイルチェックOK");
-			}
-			messageOut.add("Info:調査結果ファイルチェックOK");
+			printMessage("Info:調査結果ファイルチェックOK");
 		}
-			
+		
+		return mapResearchResult;
+//		return arrResearchResult.toArray(new ResearchResult[arrResearchResult.size()]);
 	}
 	/**
 	 * check the change and mantis exists
 	 */
-	public static void checkScopeKadai(Issue[] issues,ArrayList<String> messageOut) throws IOException{
+	public static void checkScopeKadai(Issue[] issues) throws IOException{
 		//check research file
 		String kadaiListFile1 = config.getPropertyValue("check", "kadai_list_file1");
 		updateSvn(kadaiListFile1);
@@ -417,7 +463,8 @@ public class CheckFile {
 		listName.put("no", "DO");
 //		listName.put("discuss_status", "I");
 		
-		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(kadaiListFile1, 0, listName, "no! ");
+		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(kadaiListFile1, 0,
+				listName, "no! ",0);
 		
 		HashSet<String> issueNoSet = new HashSet<String>();
 		for(Issue issue:issues){
@@ -432,10 +479,7 @@ public class CheckFile {
 			for(String no:nos){
 		    	if(!issueNoSet.contains(no)){
 		    		array.add(no);
-		    		if(CONSOLE){
-		    			System.out.println(no + " が案件状況一覧に存在しない");
-		    		}
-		    		messageOut.add(no + " が案件状況一覧に存在しない");
+		    		printMessage(no + " が案件状況一覧に存在しない");
 		    	}
 			}
 		}
@@ -446,7 +490,7 @@ public class CheckFile {
 	/**
 	 * check the change and mantis exists
 	 */
-	public static void checkScope(Issue[] issues,ArrayList<String> messageOut) throws IOException{
+	public static void checkScope(Issue[] issues) throws IOException{
 		//check research file
 		String changeListFile = config.getPropertyValue("check", "change_list_file");
 		updateSvn(changeListFile);
@@ -458,13 +502,15 @@ public class CheckFile {
 		listColNames.put("no", "A");
 		listColNames.put("releaseStatus", "O");
 		
-		Map<String, String>[] changeList = ExcelUtil.readContentFromExcelMult(changeListFile, 0, listColNames, "releaseStatus= |releaseStatus=未リリース&no! ");
+		Map<String, String>[] changeList = ExcelUtil.readContentFromExcelMult(changeListFile, 0, 
+				listColNames, "releaseStatus= |releaseStatus=未リリース&no! ",0);
 		
 		//mantis list
 		Map<String, String> mantisColNames = new HashMap<String, String>();
 		mantisColNames.put("no", "A");
 		mantisColNames.put("releaseStatus", "AC");
-		Map<String, String>[] mantisList = ExcelUtil.readContentFromExcelMult(mantisListFile, 0, mantisColNames, "releaseStatus= |releaseStatus=未リリース&no! ");
+		Map<String, String>[] mantisList = ExcelUtil.readContentFromExcelMult(mantisListFile, 0, 
+				mantisColNames, "releaseStatus= |releaseStatus=未リリース&no! ",0);
 		
 		HashSet<String> issueNoSet = new HashSet<String>();
 		for(Issue issue:issues){
@@ -479,10 +525,7 @@ public class CheckFile {
 			
 	    	if(!issueNoSet.contains(no)){
 	    		array.add(no);
-	    		if(CONSOLE){
-	    			System.out.println(no + " が案件状況一覧に存在しない");
-	    		}
-	    		messageOut.add(no + " が案件状況一覧に存在しない");
+	    		printMessage(no + " が案件状況一覧に存在しない");
 	    	}
 		}
 		
@@ -492,10 +535,8 @@ public class CheckFile {
 			
 	    	if(!issueNoSet.contains(no)){
 	    		array.add(no);
-	    		if(CONSOLE){
-	    			System.out.println(no + " が案件状況一覧に存在しない");
-	    		}
-	    		messageOut.add(no + " が案件状況一覧に存在しない");
+	    		printMessage(no + " が案件状況一覧に存在しない");
+
 	    	}
 		}
 	}
@@ -609,7 +650,8 @@ public class CheckFile {
 		String configListFile = config.getPropertyValue("check", "issue_list_file");  
 		updateSvn(configListFile);
 		//read base info
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile,0,columnNameMapIssueList,issueListFilterPattern);//sheet 0
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile,0,
+				columnNameMapIssueList,issueListFilterPattern,0);//sheet 0
 		
 		Issue[] issues = new Issue[mapTarget.length];
 		for(int i = 0 ; i<mapTarget.length;i++){
@@ -642,7 +684,8 @@ public class CheckFile {
 		updateSvn(moduleListFile);
 
 		
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,columnNameMapModuleList,"RELEASE_STATUS= ");//sheet 1
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
+				columnNameMapModuleList,"RELEASE_STATUS= ",0);//sheet 1
 		
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for(Issue issue:issues){
@@ -658,18 +701,21 @@ public class CheckFile {
 				String modulePath = mapTarget[i].get(MODULE_PATH);
 				module.setModulePath(mapTarget[i].get(MODULE_PATH));
 				
-				if(StringUtils.isBlank(modulePath)){
+				if(StringUtils.isBlank(modulePath)){//mapping key
 					module.setModulePath(mapTarget[i].get(MODULE_ID));
 				}
 				module.setModuleID(mapTarget[i].get(MODULE_ID));
 				
 				module.setProjectID(mapTarget[i].get(PROJECT_ID));
 				module.setFunctionName(mapTarget[i].get(FUNCTION_NAME));
+				//java source,xml
+				module.setModelType(1);
 				issue.addIssueModule(module);
 			}
 		}
 
-		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,2,columnNameMapCommonModuleList,"RELEASE_STATUS= ");//sheet 2
+		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,2,
+				columnNameMapCommonModuleList,"RELEASE_STATUS= ",0);//sheet 2
 		for(int i = 0 ; i<mapTarget.length;i++){
 			String issueID = mapTarget[i].get(ISSUE_ID);
 			
@@ -678,14 +724,10 @@ public class CheckFile {
 				IssueModule module = new IssueModule();
 				module.setIssueID(issueID);
 				
-				String modulePath = mapTarget[i].get(MODULE_PATH);
+				module.setModulePath(mapTarget[i].get(MODULE_PATH));
 				module.setModuleID(mapTarget[i].get(MODULE_ID));
-				
-				if(StringUtils.isNotBlank(modulePath)){
-					module.setModulePath(mapTarget[i].get(MODULE_ID)
-							+"\\"+mapTarget[i].get(MODULE_PATH));
-				}
-				
+				module.setModelType(2);
+				//shell
 				issue.addIssueModule(module);
 			}
 		}
@@ -735,6 +777,13 @@ public class CheckFile {
 		Pattern p = Pattern.compile(regex);
 		Matcher m = p.matcher(input);
 		return m.find();
+	}
+	
+	private static void printMessage(String message){
+		messageOut.add(message);
+		if(CONSOLE){
+			System.out.println(message);
+		}
 	}
 
 }

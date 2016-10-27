@@ -33,7 +33,7 @@ public class ExcelUtil {
 	 * @throws IOException
 	 */
 	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,Map<String,String> destColNames,
-			String columnNameFilterExpress) throws IOException{
+			String columnNameFilterExpress,int startRow) throws IOException{
 		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
 		FileInputStream fileIn = null;
 		
@@ -51,7 +51,7 @@ public class ExcelUtil {
 	        //convert column alpha to column index
 	        TreeMap<String, Integer> destColIndexs = convertColumnAlphaToIndex(destColNames);
 	        
-	        for(int i = 0; i <= sheet.getLastRowNum();i++){
+	        for(int i = startRow; i <= sheet.getLastRowNum();i++){
 	        	Row row = sheet.getRow(i);
 	        	if(row == null)//bug fix,why null?
 	        		continue;

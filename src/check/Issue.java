@@ -73,9 +73,7 @@ public class Issue {
 	}
 
 	public IssueModule[] getModules() {
-		IssueModule[] modules = new IssueModule[arrModules.size()];
-		arrModules.toArray(modules);
-		return modules;
+		return arrModules.toArray(new IssueModule[arrModules.size()]);
 	}
 
 	public void setModules(IssueModule[] modules) {
