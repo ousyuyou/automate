@@ -108,7 +108,6 @@ public class CheckFile {
 	 */
 	public static void main(String[] args) throws IOException,SVNException{
 		
-		
 		Issue[] issues = getIssueInfo("RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済", false);
 		//check scopes：仕様変更＆mantis
 		checkScope(issues);
@@ -126,7 +125,7 @@ public class CheckFile {
 		//移行関連修正案件は調査ファイルが別対応のため、チェック対象外
 		Issue[] researchIssues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&RESEARCH_STATUS=○&DEAL_FLAG=○&(ISSUE_STATUS=調査済|ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
 				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○", false);
-		Map<String,ResearchResult> results = checkResearchFile(researchIssues);
+		Map<String,ResearchResult> researchResults = checkResearchFile(researchIssues);
 		
 //		for(ResearchResult result:results.values()){
 //			System.out.println(result.getIssueId());
@@ -138,18 +137,19 @@ public class CheckFile {
 		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
 				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○",
 				true);
-		//compare research modules with
-		checkModules(issuesforSource,results);
+		//compare research modules with modules list
+		checkModules(issuesforSource,researchResults);
 		//check source commit
 		checkSourceCommit(issuesforSource);
 		//check si test file
-
+		Issue[] issuesforST = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○",
+				false);
 		//check ut test file
 //		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|"+
 //				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
 //				true);
 //		checkUT(issuesforUT,messagesOut);
-				
+		checkST(issuesforST,researchResults);		
 	}
 
 	public static void checkModules(Issue[] issues,Map<String,ResearchResult> results){
@@ -172,6 +172,10 @@ public class CheckFile {
 				if(!set.contains(module.getModuleID())){
 					printMessage(issue.getId()+ " " +module.getModuleID()+ " 資材一覧と調査結果モジュールが不一致");
 				}
+			}
+			
+			if(results.get(issue.getId()).getFunctions().length == 0){
+				printMessage(issue.getId()+ " テスト対象一覧が記載されていない");
 			}
 		}
 		
@@ -212,8 +216,52 @@ public class CheckFile {
 		}
 	}
 	
-	public static void checkST(){
+	public static void checkST(Issue[] issues,Map<String,ResearchResult> results){
+	
+		String path1 = config.getPropertyValue("check", "st_file_path1");
+		updateSvn(path1);
+		String path2 = config.getPropertyValue("check", "st_file_path2");
+		updateSvn(path2);
+		String path3 = config.getPropertyValue("check", "st_file_path3");
+		updateSvn(path3);
+		String path4 = config.getPropertyValue("check", "st_file_path4");
+		updateSvn(path4);
+		String path5 = config.getPropertyValue("check", "st_file_path5");
+		updateSvn(path5);
+		String path6 = config.getPropertyValue("check", "st_file_path6");
+		updateSvn(path6);
 		
+		ArrayList<File> arrResult = new ArrayList<File>();
+		FileUtil.listAbsoluteFiles(new File(path1), arrResult);
+		FileUtil.listAbsoluteFiles(new File(path2), arrResult);
+		FileUtil.listAbsoluteFiles(new File(path3), arrResult);
+		FileUtil.listAbsoluteFiles(new File(path4), arrResult);
+		FileUtil.listAbsoluteFiles(new File(path5), arrResult);
+		FileUtil.listAbsoluteFiles(new File(path6), arrResult);
+		
+		//issue_id + funciton_name
+		for(Issue issue:issues){
+			int count = 0;
+			ResearchResult result = results.get(issue.getId());
+			IssueFunction[] functions = result.getFunctions();
+			for(IssueFunction function:functions){
+				boolean match = false;
+				for(File f:arrResult){
+					if(f.getName().contains(issue.getId()) && f.getName().contains(function.getFunctionName())){//match ok
+						//
+						match = true;
+						count++;
+						break;
+					}
+				}
+				if(!match){
+					printMessage(issue.getId() + ":"+function.getFunctionName() + " 結合試験ファイルが見つからない");
+				}
+			}
+//			if(count == 0){
+//				printMessage(issue.getId() + " 結合試験ファイルが見つからない");
+//			}
+		}
 	}
 	
 	public static void checkDate(Issue[] issues){
@@ -685,7 +733,7 @@ public class CheckFile {
 
 		
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
-				columnNameMapModuleList,"RELEASE_STATUS= ",0);//sheet 1
+				columnNameMapModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 1
 		
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for(Issue issue:issues){
@@ -715,7 +763,7 @@ public class CheckFile {
 		}
 
 		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,2,
-				columnNameMapCommonModuleList,"RELEASE_STATUS= ",0);//sheet 2
+				columnNameMapCommonModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 2
 		for(int i = 0 ; i<mapTarget.length;i++){
 			String issueID = mapTarget[i].get(ISSUE_ID);
 			
