@@ -2,12 +2,14 @@ package util;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -25,6 +27,32 @@ public class ExcelUtil {
 	private static int index = 0;
 	/**
 	 * 
+	 * @param fileName excel file path
+	 * @param sheetNames sheet name to get index 
+	 * @return
+	 * @throws IOException
+	 */
+	public static int[] findSheetExistByName(String fileName,String[] sheetNames) throws IOException{
+		int[] sheetNos = new int[sheetNames.length];
+		FileInputStream fileIn = null;
+		try{
+			fileIn = new FileInputStream(fileName);
+	        Workbook wb = getWorkBookByExcelPath(fileName);
+	        
+	        for(int i = 0;i < sheetNames.length; i++){
+	        	sheetNos[i] = wb.getSheetIndex(sheetNames[i]) == -1 ? 0 : 1;
+	        }
+		} finally{
+			if(fileIn!=null){
+				fileIn.close();
+			}
+		}
+		
+		return sheetNos;
+	}
+	
+	/**
+	 * 
 	 * @param fileName excel file name
 	 * @param sheetNo excel sheet no
 	 * @param destColNames key=ISSUE_ID value=B;key=ISSUE_REVIEWER value=E...
@@ -40,7 +68,7 @@ public class ExcelUtil {
 //		System.out.println("fileName: "+fileName);
 		try{
 			fileIn = new FileInputStream(fileName);
-	        Workbook wb = new XSSFWorkbook(new FileInputStream(fileName));
+	        Workbook wb = getWorkBookByExcelPath(fileName);
 	        Sheet sheet = wb.getSheetAt(sheetNo);
 	        
 	        //init
@@ -161,6 +189,26 @@ public class ExcelUtil {
 //		return in.replaceAll("&amp;", "&");
 //	}
 	
+	private static Workbook getWorkBookByExcelPath(String filepath) throws IOException{
+		if(filepath==null){  
+            return null;  
+        }  
+        String ext = filepath.substring(filepath.lastIndexOf("."));
+        
+        Workbook wb = null;  
+        
+        InputStream is = new FileInputStream(filepath);  
+        if(".xls".equals(ext)){  
+            wb = new HSSFWorkbook(is);  
+        }else if(".xlsx".equals(ext)){  
+            wb = new XSSFWorkbook(is);  
+        }else{  
+            wb=null;  
+        }  
+        
+        return wb;
+ 
+	}
 	
 	private static String[] setColumnNameIndex(int digit,HashMap<String,Integer> out,int digitLoop){
 		ArrayList<String> arrayConnect = new ArrayList<String>();

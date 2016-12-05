@@ -60,5 +60,22 @@ public class FileUtil {
 	            }
 	     }
 	}
+	
+	public static void listAbsoluteFiles(File f,ArrayList<File> arrayOut,String containKey){
+		 if(f != null){
+	            if(f.isDirectory()){
+	                File[] fileArray=f.listFiles();
+	                if(fileArray!=null){
+	                    for (int i = 0; i < fileArray.length; i++) {
+	                    	listAbsoluteFiles(fileArray[i],arrayOut);
+	                    }
+	                }
+	            } else {
+	            	if(f.getName().contains(containKey)){
+	            		arrayOut.add(f);
+	            	}
+	            }
+	     }
+	}
 
 }

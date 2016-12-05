@@ -5,8 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,14 +15,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.JTable.PrintMode;
-
 import org.apache.commons.lang.StringUtils;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.SVNLogEntryPath;
 
-import sun.misc.Regexp;
 import svn.ConfigFile;
 import svn.SVNUtil;
 import util.ExcelUtil;
@@ -53,6 +48,20 @@ public class CheckFile {
 	private static final String DEAL_FLAG = "DEAL_FLAG";
 	private static final String IKOU_RESOURCE = "IKOU_RESOURCE";
 	
+	private static final String YOTEI_KOUSU_CD = "YOTEI_KOUSU_CD";
+	private static final String YOTEI_KOUSU_UT = "YOTEI_KOUSU_UT";
+	private static final String YOTEI_KOUSU_ST = "YOTEI_KOUSU_ST";
+	
+	private static final String JISEKI_KOUSU_CD = "JISEKI_KOUSU_CD";
+	private static final String JISEKI_KOUSU_UT = "JISEKI_KOUSU_UT";
+	private static final String JISEKI_KOUSU_ST = "JISEKI_KOUSU_ST";
+	
+	private static final String DDL_SQL = "DDL_SQL";
+	private static final String PATCH_YOUHI = "PATCH_YOUHI";
+	
+	private static final String JOB_ID = "JOB_ID";
+	private static final String PATTERN_NAME = "PATTERN_NAME";
+	
 	private static final boolean DEBUG = false;
 	private static final boolean CONSOLE = true;
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
@@ -69,15 +78,23 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_STATUS, "N");
 		columnNameMapIssueList.put(ISSUE_OWNER_ID, "J");
 		columnNameMapIssueList.put(RESEARCH_STATUS, "M");
-		columnNameMapIssueList.put(RELEASE_STATUS, "W");
-		columnNameMapIssueList.put(PLAN_START_DATE, "Q");//
-		columnNameMapIssueList.put(PLAN_FINISH_DATE, "R");
-		columnNameMapIssueList.put(DELAY_STATUS, "S");
-		columnNameMapIssueList.put(DELAY_COMMENT, "V");
-		columnNameMapIssueList.put(ACTUAL_START_DATE, "T");
-		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "U");
+		columnNameMapIssueList.put(RELEASE_STATUS, "AC");
+		columnNameMapIssueList.put(PLAN_START_DATE, "T");//
+		columnNameMapIssueList.put(PLAN_FINISH_DATE, "U");
+		columnNameMapIssueList.put(DELAY_STATUS, "V");
+		columnNameMapIssueList.put(DELAY_COMMENT, "AB");
+		columnNameMapIssueList.put(ACTUAL_START_DATE, "W");
+		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "X");
 		columnNameMapIssueList.put(DEAL_FLAG, "L");
-		columnNameMapIssueList.put(IKOU_RESOURCE, "AA");
+		columnNameMapIssueList.put(IKOU_RESOURCE, "AG");
+		//予定工数
+		columnNameMapIssueList.put(YOTEI_KOUSU_CD, "Q");
+		columnNameMapIssueList.put(YOTEI_KOUSU_UT, "R");
+		columnNameMapIssueList.put(YOTEI_KOUSU_ST, "S");
+		//実績工数
+		columnNameMapIssueList.put(JISEKI_KOUSU_CD, "Y");
+		columnNameMapIssueList.put(JISEKI_KOUSU_UT, "Z");
+		columnNameMapIssueList.put(JISEKI_KOUSU_ST, "AA");
 	}
 	/**
 	 * module list,source
@@ -101,6 +118,10 @@ public class CheckFile {
 		columnNameMapCommonModuleList.put(MODULE_ID, "C");
 		columnNameMapCommonModuleList.put(MODULE_PATH, "D");
 		columnNameMapCommonModuleList.put(RELEASE_STATUS, "I");
+		//K,L列：DDL句とパッチ要否チェック
+		columnNameMapCommonModuleList.put(DDL_SQL, "K");
+		columnNameMapCommonModuleList.put(PATCH_YOUHI, "L");
+		
 	}
 	
 	/**
@@ -113,7 +134,7 @@ public class CheckFile {
 		checkScope(issues);
 		
 		//check scopes：受入課題、移行検証課題など
-		checkScopeKadai(issues);
+		//checkScopeKadai(issues);
 		
 		issues = getIssueInfo("(RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)&DEAL_FLAG=○", false);
 		//check research status：調査要否
@@ -127,11 +148,8 @@ public class CheckFile {
 				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○", false);
 		Map<String,ResearchResult> researchResults = checkResearchFile(researchIssues);
 		
-//		for(ResearchResult result:results.values()){
-//			System.out.println(result.getIssueId());
-//			System.out.println(result.getModules().length);
-//			System.out.println(result.getFunctions().length);
-//		}
+		//check予定工数
+		checkWorkDay(researchIssues,1);
 		
 		//移行関連修正案件は別PRJのため、チェック対象外
 		Issue[] issuesforSource = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=CD済|ISSUE_STATUS=UT済|"+
@@ -145,13 +163,42 @@ public class CheckFile {
 		Issue[] issuesforST = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)&IKOU_RESOURCE!○",
 				false);
 		//check ut test file
-//		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&ISSUE_STATUS=UT済|"+
-//				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
-//				true);
-//		checkUT(issuesforUT,messagesOut);
-		checkST(issuesforST,researchResults);		
+		Issue[] issuesforUT = getIssueInfo("DEAL_FLAG=○&(RELEASE_STATUS=未リリース)&(ISSUE_STATUS=UT済|"+
+				"ISSUE_STATUS=内部結合実施中|ISSUE_STATUS=内部結合実施済|ISSUE_STATUS=内部結合一次レビュー済|ISSUE_STATUS=内部結合済|ISSUE_STATUS=内部結合完了)",
+				true);
+		checkUT(issuesforUT);
+		
+		checkST(issuesforST,researchResults);
+		//check実績工数
+		checkWorkDay(issuesforST,2);
 	}
-
+	
+	/**
+	 * 
+	 * @param issues
+	 * @param results
+	 * @param kbn 1:予定工数、2:実績工数
+	 */
+	public static void checkWorkDay(Issue[] issues,int kbn){
+		for(Issue issue:issues){
+			switch(kbn){
+				case 1:
+					if(StringUtils.isBlank(issue.getYoteiKousuCD()) ||
+							StringUtils.isBlank(issue.getYoteiKousuUT())||
+							StringUtils.isBlank(issue.getYoteiKousuST())){
+						printMessage(issue.getId()+ " 予定工数が記入されていない");
+					}
+					break;
+				case 2:
+					if(StringUtils.isBlank(issue.getJisekiKousuCD()) ||
+							StringUtils.isBlank(issue.getJisekiKousuUT())||
+							StringUtils.isBlank(issue.getJisekiKousuST())){
+						printMessage(issue.getId()+ " 実績工数が記入されていない");
+					}
+			}
+		}
+	}
+	
 	public static void checkModules(Issue[] issues,Map<String,ResearchResult> results){
 		for(Issue issue:issues){
 			IssueModule[] models = issue.getModules();
@@ -181,38 +228,49 @@ public class CheckFile {
 		
 	}
 	
-	public static void checkUT(Issue[] issues){
-		//check source commit
-		HashMap<String, String> sources = listSources();
+	private static String[] getModuleIDs(IssueModule[] modules){
+		ArrayList<String > idList = new ArrayList<String>();
+		for(IssueModule module:modules){
+			if(module.getModelType() == 1){
+				idList.add(module.getModuleID());
+			}
+		}
+		
+		return idList.toArray(new String[idList.size()]);
+	}
+	
+	public static void checkUT(Issue[] issues) throws IOException{
+		String path = config.getPropertyValue("check", "ut_file_path");
+		//updateSvn(path);
+		ArrayList<File> fileList = new ArrayList<File>();
+		FileUtil.listAbsoluteFiles(new File(path), fileList,"ケース");//ケースのみチェック
 		
 		for(Issue issue:issues){
 			IssueModule[] modules = issue.getModules();
+			String[] moduleIDs = getModuleIDs(modules);
 			
-			if(modules.length == 0){
-				printMessage(issue.getId()+ " がモジュール一覧に存在しない");
-				
+			int[] sheetExists = new int[moduleIDs.length];
+			
+			for(File f:fileList){
+				if(f.getName().endsWith("xlsx") || f.getName().endsWith("xls")){
+					if(f.getName().toUpperCase().contains(issue.getId().toUpperCase())){
+//						System.out.println(f.getAbsolutePath());
+						int[] sheetNos = ExcelUtil.findSheetExistByName(f.getAbsolutePath(), moduleIDs);
+						if(sheetExists.length != sheetNos.length){
+							throw new IllegalStateException("sheet個数不一致");
+						}
+						for(int i = 0 ; i < sheetExists.length ;i++){
+							sheetExists[i] = sheetExists[i] | sheetNos[i];
+						}
+					}
+				}
 			}
 			
-//			for(IssueModule module:modules){
-//				if(sources.containsKey(module.getModulePath())){
-//					List<SVNLogEntry> list = SVNUtil.getHistory(sources.get(module.getModulePath()), getStartDate(-90), getEndDate(), module.getIssueID());
-//					if(list.size() ==0){
-//						messagesOut.add(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
-//						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Warning: 該当するコミット履歴が見つからない");
-//					}else{
-////						System.out.println(module.getIssueID() + " " +module.getModulePath() +" Info: commit ok");
-//					}
-//					
-//					if(DEBUG){
-//						printLog(list);
-//					}
-//				} else {
-//					if(CONSOLE){
-//						System.out.println(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
-//					}
-//					messagesOut.add(module.getIssueID() + " "+module.getModulePath() + " Info:ソースではない" );
-//				}
-//			}
+			for(int i = 0 ; i < sheetExists.length ;i++){
+				if(sheetExists[i] == 0){
+					printMessage(issue.getId()+ " モジュール: "+moduleIDs[i] + " 単体テストケースが見つからない");
+				}
+			}
 		}
 	}
 	
@@ -243,6 +301,8 @@ public class CheckFile {
 		for(Issue issue:issues){
 			int count = 0;
 			ResearchResult result = results.get(issue.getId());
+//			System.out.println("issue id : "+issue.getId()+" result "+result);
+			
 			IssueFunction[] functions = result.getFunctions();
 			for(IssueFunction function:functions){
 				boolean match = false;
@@ -394,7 +454,15 @@ public class CheckFile {
 					if(DEBUG){
 						printLog(list);
 					}
-				} else {
+				} else {//共通資材
+					if("データベース設計書".equals(module.getModuleID()) ||
+							"データベース設計書（料率）".equals(module.getModuleID()) ||
+							"コードリスト（DB設定）".equals(module.getModuleID())){
+						if(StringUtils.isBlank(module.getDdlSql()) || 
+								StringUtils.isBlank(module.getPatchYouhi())){
+							printMessage(module.getIssueID() +" "+ module.getModuleID()+"\\"+ " Warning:DB資材はパッチ要否が記入されていない");
+						}
+					}
 					printMessage(module.getIssueID() +" "+ module.getModuleID()+"\\"+module.getModulePath() + " Info:ソースではない");
 				}
 			}
@@ -432,7 +500,10 @@ public class CheckFile {
 			for(int j=startIndex;j <strPaths.length;j++){
 				String regex = ".+\\\\(.+)$";
 				String fileName = strPaths[j].replaceAll(regex, "$1");
-				if(fileName.contains(strTarget[i])){
+				if(fileName.contains("同件調査")){//同件調査ファイルを対象外にする
+					continue;
+				}
+				if(fileName.toLowerCase().contains(strTarget[i])){
 					ResearchResult result = null;
 					if(mapResearchResult.containsKey(strTarget[i])){
 						result = mapResearchResult.get(strTarget[i]);
@@ -465,12 +536,25 @@ public class CheckFile {
 						//set research file's test functions
 						listColNames = new HashMap<String, String>();
 						listColNames.put(FUNCTION_NAME, "B");
+						listColNames.put(JOB_ID, "C");
+						listColNames.put(PATTERN_NAME, "D");
 						//TODO
 						Map<String, String>[] functions = ExcelUtil.readContentFromExcelMult(strPaths[j], 1, listColNames, "FUNCTION_NAME! ",1);
+//						IssueFunction function = null;
+						String functionName = null;
 						for(Map<String,String> map:functions){
+							String patternName = map.get(PATTERN_NAME);
+							functionName = StringUtils.isBlank(map.get(FUNCTION_NAME))?functionName:map.get(FUNCTION_NAME);
+							if(StringUtils.isBlank(patternName)){
+								printMessage(strTarget[i]  +" 機能名:"+ functionName+ " Warning:調査結果にテストパターン名が記入されていない");
+							}
+							if(StringUtils.isBlank(map.get(FUNCTION_NAME))){
+								continue;
+							}
 							IssueFunction function = new IssueFunction();
 							function.setIssueID(strTarget[i]);
 							function.setFunctionName(map.get(FUNCTION_NAME));
+							
 							result.addIssueFunction(function);
 						}
 					}catch(Exception e){
@@ -717,6 +801,14 @@ public class CheckFile {
 			issues[i].setActualFinishDate(mapTarget[i].get(ACTUAL_FINISH_DATE));
 			issues[i].setDealFlag(mapTarget[i].get(DEAL_FLAG));
 			issues[i].setIkouResource(mapTarget[i].get(IKOU_RESOURCE));
+			//予定工数
+			issues[i].setYoteiKousuCD(mapTarget[i].get(YOTEI_KOUSU_CD));
+			issues[i].setYoteiKousuUT(mapTarget[i].get(YOTEI_KOUSU_UT));
+			issues[i].setYoteiKousuST(mapTarget[i].get(YOTEI_KOUSU_ST));
+			//実績工数
+			issues[i].setJisekiKousuCD(mapTarget[i].get(JISEKI_KOUSU_CD));
+			issues[i].setJisekiKousuUT(mapTarget[i].get(JISEKI_KOUSU_UT));
+			issues[i].setJisekiKousuST(mapTarget[i].get(JISEKI_KOUSU_ST));
 		}
 		
 		if(readModuleInfo){
@@ -775,7 +867,9 @@ public class CheckFile {
 				module.setModulePath(mapTarget[i].get(MODULE_PATH));
 				module.setModuleID(mapTarget[i].get(MODULE_ID));
 				module.setModelType(2);
-				//shell
+				module.setDdlSql(mapTarget[i].get(DDL_SQL));
+				module.setPatchYouhi(mapTarget[i].get(PATCH_YOUHI));
+				//add
 				issue.addIssueModule(module);
 			}
 		}

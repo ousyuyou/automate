@@ -8,6 +8,8 @@ public class IssueFunction {
 	private String issueID;
 	private String functionID;
 	private String functionName;
+	private String jobID;
+	private String patternName;
 	
 	public IssueFunction(){
 		
@@ -30,5 +32,21 @@ public class IssueFunction {
 	}
 	public void setFunctionName(String functionName) {
 		this.functionName = functionName;
+	}
+
+	public String getJobID() {
+		return jobID;
+	}
+
+	public void setJobID(String jobID) {
+		this.jobID = jobID;
+	}
+
+	public String getPatternName() {
+		return patternName;
+	}
+
+	public void setPatternName(String patternName) {
+		this.patternName = patternName;
 	}
 }

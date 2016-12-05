@@ -17,6 +17,14 @@ public class Issue {
 	private String dealFlag;
 	private String ikouResource;
 	
+	private String yoteiKousuCD;
+	private String yoteiKousuUT;
+	private String yoteiKousuST;
+	
+	private String jisekiKousuCD;
+	private String jisekiKousuUT;
+	private String jisekiKousuST;
+	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
 	private ArrayList<IssueModule> arrModules;
@@ -159,6 +167,54 @@ public class Issue {
 
 	public void setIkouResource(String ikouResource) {
 		this.ikouResource = ikouResource;
+	}
+
+	public String getYoteiKousuCD() {
+		return yoteiKousuCD;
+	}
+
+	public void setYoteiKousuCD(String yoteiKousuCD) {
+		this.yoteiKousuCD = yoteiKousuCD;
+	}
+
+	public String getYoteiKousuUT() {
+		return yoteiKousuUT;
+	}
+
+	public void setYoteiKousuUT(String yoteiKousuUT) {
+		this.yoteiKousuUT = yoteiKousuUT;
+	}
+
+	public String getYoteiKousuST() {
+		return yoteiKousuST;
+	}
+
+	public void setYoteiKousuST(String yoteiKousuST) {
+		this.yoteiKousuST = yoteiKousuST;
+	}
+
+	public String getJisekiKousuCD() {
+		return jisekiKousuCD;
+	}
+
+	public void setJisekiKousuCD(String jisekiKousuCD) {
+		this.jisekiKousuCD = jisekiKousuCD;
+	}
+
+	public String getJisekiKousuUT() {
+		return jisekiKousuUT;
+	}
+
+	public void setJisekiKousuUT(String jisekiKousuUT) {
+		this.jisekiKousuUT = jisekiKousuUT;
+	}
+
+	public String getJisekiKousuST() {
+		return jisekiKousuST;
+	}
+
+	public void setJisekiKousuST(String jisekiKousuST) {
+		this.jisekiKousuST = jisekiKousuST;
 	}
 
 }

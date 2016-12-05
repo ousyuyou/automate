@@ -22,6 +22,9 @@ public class IssueModule {
 	 */
 	private int modelType;
 	
+	private String ddlSql;
+	private String patchYouhi;
+	
 	public IssueModule(){
 		
 	}
@@ -55,10 +58,27 @@ public class IssueModule {
 	public void setFunctionName(String functionName) {
 		this.functionName = functionName;
 	}
+	/**
+	 * 1:java source,pdf xml
+	 * 2:shell,db,code list
+	 * @return
+	 */
 	public int getModelType() {
 		return modelType;
 	}
 	public void setModelType(int modelType) {
 		this.modelType = modelType;
+	}
+	public String getDdlSql() {
+		return ddlSql;
+	}
+	public void setDdlSql(String ddlSql) {
+		this.ddlSql = ddlSql;
+	}
+	public String getPatchYouhi() {
+		return patchYouhi;
+	}
+	public void setPatchYouhi(String patchYouhi) {
+		this.patchYouhi = patchYouhi;
 	}
 }
