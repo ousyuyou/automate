@@ -67,7 +67,7 @@ public class FileUtil {
 	                File[] fileArray=f.listFiles();
 	                if(fileArray!=null){
 	                    for (int i = 0; i < fileArray.length; i++) {
-	                    	listAbsoluteFiles(fileArray[i],arrayOut);
+	                    	listAbsoluteFiles(fileArray[i],arrayOut,containKey);
 	                    }
 	                }
 	            } else {

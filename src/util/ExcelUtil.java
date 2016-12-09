@@ -197,14 +197,20 @@ public class ExcelUtil {
         
         Workbook wb = null;  
         
-        InputStream is = new FileInputStream(filepath);  
-        if(".xls".equals(ext)){  
-            wb = new HSSFWorkbook(is);  
-        }else if(".xlsx".equals(ext)){  
-            wb = new XSSFWorkbook(is);  
-        }else{  
-            wb=null;  
-        }  
+        InputStream is = new FileInputStream(filepath);
+        try{
+            if(".xls".equals(ext)){  
+                wb = new HSSFWorkbook(is);  
+            }else if(".xlsx".equals(ext)){  
+                wb = new XSSFWorkbook(is);  
+            }else{  
+                wb=null;  
+            }  
+        	
+        } catch(Exception ioe){
+        	System.err.println(filepath);
+        	throw new IOException(ioe);
+        }
         
         return wb;
  

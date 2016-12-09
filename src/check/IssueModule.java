@@ -25,6 +25,8 @@ public class IssueModule {
 	private String ddlSql;
 	private String patchYouhi;
 	
+	private String utSheetName;
+	
 	public IssueModule(){
 		
 	}
@@ -80,5 +82,11 @@ public class IssueModule {
 	}
 	public void setPatchYouhi(String patchYouhi) {
 		this.patchYouhi = patchYouhi;
+	}
+	public String getUtSheetName() {
+		return utSheetName;
+	}
+	public void setUtSheetName(String utSheetName) {
+		this.utSheetName = utSheetName;
 	}
 }
