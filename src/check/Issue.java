@@ -25,6 +25,8 @@ public class Issue {
 	private String jisekiKousuUT;
 	private String jisekiKousuST;
 	
+	private String rlsVersion;
+	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
 	private ArrayList<IssueModule> arrModules;
@@ -215,6 +217,14 @@ public class Issue {
 
 	public void setJisekiKousuST(String jisekiKousuST) {
 		this.jisekiKousuST = jisekiKousuST;
+	}
+
+	public String getRlsVersion() {
+		return rlsVersion;
+	}
+
+	public void setRlsVersion(String rlsVersion) {
+		this.rlsVersion = rlsVersion;
 	}
 
 }

@@ -41,7 +41,8 @@ public class SVNUtil {
 	}
 	private static File CERT_FILE_PATH = new File("e:/cert/");
 	private static final boolean DEBUG = false;
-	
+	private static final String SPACE = " ";
+
 	/**
 	 * @param args
 	 */
@@ -242,6 +243,37 @@ public class SVNUtil {
         	
         }
 	}
+	/**
+	 * update svn
+	 * @param destDirectory
+	 */
+	public static void updateSvnByTortoiseSvn(String destDirectory,String svnInstallPath){
+		StringBuffer strBufClean = new StringBuffer();
+		//clean
+		strBufClean.append("/command:cleanup /path:");
+		strBufClean.append(destDirectory.substring(0, destDirectory.lastIndexOf("/")));
+		strBufClean.append(SPACE);
+		strBufClean.append("/notempfile /noui /closeonend:1");
+		String[] commandClean = new String[]{svnInstallPath, strBufClean.toString()};
 
+		//update
+		StringBuffer strBufUpdate = new StringBuffer();
+		strBufUpdate.append("/command:update /path:");
+		strBufUpdate.append(destDirectory);
+		strBufUpdate.append(SPACE);
+		strBufUpdate.append("/notempfile /closeonend:1");
+		String[] commandUpdate = new String[]{svnInstallPath,strBufUpdate.toString()};
+		
+		try{
+			java.lang.Process process1 = Runtime.getRuntime().exec(commandClean);
+			process1.waitFor();
+			java.lang.Process process2 = Runtime.getRuntime().exec(commandUpdate);
+			process2.waitFor();
+		}catch (Exception e){
+			//TODO
+			e.printStackTrace();
+		}
+		
+	}
 		
 }

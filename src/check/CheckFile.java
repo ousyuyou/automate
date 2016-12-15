@@ -66,6 +66,7 @@ public class CheckFile {
 	private static final boolean DEBUG = false;
 	private static final boolean CONSOLE = true;
 	private static ConfigFile config = new ConfigFile(new File(CONFIG_FILE_PATH));
+	private static String svnInstallPath = config.getPropertyValue("global", "svn_install_path");
 
 	private static int REVIEW_KIGEN = 5;
 	private static ArrayList<String> messageOut = new ArrayList<String>();
@@ -79,23 +80,23 @@ public class CheckFile {
 		columnNameMapIssueList.put(ISSUE_STATUS, "N");
 		columnNameMapIssueList.put(ISSUE_OWNER_ID, "J");
 		columnNameMapIssueList.put(RESEARCH_STATUS, "M");
-		columnNameMapIssueList.put(RELEASE_STATUS, "AC");
-		columnNameMapIssueList.put(PLAN_START_DATE, "T");//
-		columnNameMapIssueList.put(PLAN_FINISH_DATE, "U");
-		columnNameMapIssueList.put(DELAY_STATUS, "V");
-		columnNameMapIssueList.put(DELAY_COMMENT, "AB");
-		columnNameMapIssueList.put(ACTUAL_START_DATE, "W");
-		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "X");
+		columnNameMapIssueList.put(RELEASE_STATUS, "AE");
+		columnNameMapIssueList.put(PLAN_START_DATE, "V");//
+		columnNameMapIssueList.put(PLAN_FINISH_DATE, "W");
+		columnNameMapIssueList.put(DELAY_STATUS, "X");
+		columnNameMapIssueList.put(DELAY_COMMENT, "AD");
+		columnNameMapIssueList.put(ACTUAL_START_DATE, "Y");
+		columnNameMapIssueList.put(ACTUAL_FINISH_DATE, "Z");
 		columnNameMapIssueList.put(DEAL_FLAG, "L");
-		columnNameMapIssueList.put(IKOU_RESOURCE, "AG");
+		columnNameMapIssueList.put(IKOU_RESOURCE, "AI");
 		//予定工数
-		columnNameMapIssueList.put(YOTEI_KOUSU_CD, "Q");
-		columnNameMapIssueList.put(YOTEI_KOUSU_UT, "R");
-		columnNameMapIssueList.put(YOTEI_KOUSU_ST, "S");
+		columnNameMapIssueList.put(YOTEI_KOUSU_CD, "S");
+		columnNameMapIssueList.put(YOTEI_KOUSU_UT, "U");
+		columnNameMapIssueList.put(YOTEI_KOUSU_ST, "T");
 		//実績工数
-		columnNameMapIssueList.put(JISEKI_KOUSU_CD, "Y");
-		columnNameMapIssueList.put(JISEKI_KOUSU_UT, "Z");
-		columnNameMapIssueList.put(JISEKI_KOUSU_ST, "AA");
+		columnNameMapIssueList.put(JISEKI_KOUSU_CD, "AA");
+		columnNameMapIssueList.put(JISEKI_KOUSU_UT, "AC");
+		columnNameMapIssueList.put(JISEKI_KOUSU_ST, "AB");
 	}
 	/**
 	 * module list,source
@@ -125,7 +126,6 @@ public class CheckFile {
 		columnNameMapCommonModuleList.put(PATCH_YOUHI, "L");
 		
 	}
-	
 	/**
 	 * @param args
 	 */
@@ -248,7 +248,8 @@ public class CheckFile {
 	
 	public static void checkUT(Issue[] issues) throws IOException{
 		String path = config.getPropertyValue("check", "ut_file_path");
-		updateSvn(path);
+		SVNUtil.updateSvnByTortoiseSvn(path,svnInstallPath);
+		
 		ArrayList<File> fileList = new ArrayList<File>();
 		FileUtil.listAbsoluteFiles(new File(path), fileList,"ケース");//ケースのみチェック
 		
@@ -284,17 +285,17 @@ public class CheckFile {
 	public static void checkST(Issue[] issues,Map<String,ResearchResult> results){
 	
 		String path1 = config.getPropertyValue("check", "st_file_path1");
-		updateSvn(path1);
+		SVNUtil.updateSvnByTortoiseSvn(path1, svnInstallPath);
 		String path2 = config.getPropertyValue("check", "st_file_path2");
-		updateSvn(path2);
+		SVNUtil.updateSvnByTortoiseSvn(path2, svnInstallPath);
 		String path3 = config.getPropertyValue("check", "st_file_path3");
-		updateSvn(path3);
+		SVNUtil.updateSvnByTortoiseSvn(path3, svnInstallPath);
 		String path4 = config.getPropertyValue("check", "st_file_path4");
-		updateSvn(path4);
+		SVNUtil.updateSvnByTortoiseSvn(path4, svnInstallPath);
 		String path5 = config.getPropertyValue("check", "st_file_path5");
-		updateSvn(path5);
+		SVNUtil.updateSvnByTortoiseSvn(path5, svnInstallPath);
 		String path6 = config.getPropertyValue("check", "st_file_path6");
-		updateSvn(path6);
+		SVNUtil.updateSvnByTortoiseSvn(path6, svnInstallPath);
 		
 		ArrayList<File> arrResult = new ArrayList<File>();
 		FileUtil.listAbsoluteFiles(new File(path1), arrResult);
@@ -442,7 +443,13 @@ public class CheckFile {
 	
 	public static void checkSourceCommit(Issue[] issues) throws SVNException{
 		//check source commit
-		HashMap<String, String> sources = listSources();
+		String sourceFile1 = config.getPropertyValue("check", "mps_source_path1");
+		String sourceFile2 = config.getPropertyValue("check", "mps_source_path2");
+		String sourceFile3 = config.getPropertyValue("check", "if_source_path1");
+		String sourceFile4 = config.getPropertyValue("check", "core_source_path1");
+		String sourceFile5 = config.getPropertyValue("check", "core_source_path2");
+		String[] sourcePaths =  new String[]{sourceFile1,sourceFile2,sourceFile3,sourceFile4,sourceFile5};
+		HashMap<String, String> sources = FileUtil.listSources(sourcePaths,svnInstallPath);
 		
 		for(Issue issue:issues){
 			IssueModule[] modules = issue.getModules();
@@ -485,7 +492,7 @@ public class CheckFile {
 		
 		//update svn
 		String researchFilePath = config.getPropertyValue("check", "research_result_path");
-		updateSvn(researchFilePath);
+		SVNUtil.updateSvnByTortoiseSvn(researchFilePath, svnInstallPath);
 		
 		ArrayList<File> arrResult = new ArrayList<File>();
 		FileUtil.listAbsoluteFiles(new File(researchFilePath), arrResult);
@@ -598,7 +605,7 @@ public class CheckFile {
 	public static void checkScopeKadai(Issue[] issues) throws IOException{
 		//check research file
 		String kadaiListFile1 = config.getPropertyValue("check", "kadai_list_file1");
-		updateSvn(kadaiListFile1);
+		SVNUtil.updateSvnByTortoiseSvn(kadaiListFile1, svnInstallPath);
 		
 		//change list
 		Map<String, String> listName = new HashMap<String, String>();
@@ -635,9 +642,10 @@ public class CheckFile {
 	public static void checkScope(Issue[] issues) throws IOException{
 		//check research file
 		String changeListFile = config.getPropertyValue("check", "change_list_file");
-		updateSvn(changeListFile);
+		SVNUtil.updateSvnByTortoiseSvn(changeListFile, svnInstallPath);
+
 		String mantisListFile = config.getPropertyValue("check", "mantis_list_file");
-		updateSvn(mantisListFile);
+		SVNUtil.updateSvnByTortoiseSvn(mantisListFile, svnInstallPath);
 		
 		//change list
 		Map<String, String> listColNames = new HashMap<String, String>();
@@ -730,65 +738,7 @@ public class CheckFile {
 		return cal.getTime();
 	}
 	
-	private static HashMap<String, String> listSources(){
-		String sourceFile1 = config.getPropertyValue("check", "mps_source_path1");
-		String sourceFile2 = config.getPropertyValue("check", "mps_source_path2");
-		String sourceFile3 = config.getPropertyValue("check", "if_source_path1");
-		String sourceFile4 = config.getPropertyValue("check", "core_source_path1");
-		String sourceFile5 = config.getPropertyValue("check", "core_source_path2");
-		updateSvn(sourceFile1);
-		updateSvn(sourceFile2);
-		updateSvn(sourceFile3);
-		updateSvn(sourceFile4);
-		updateSvn(sourceFile5);
-		
-		ArrayList<File> array = new ArrayList<File>();
-		FileUtil.listAbsoluteFiles(sourceFile1, array);
-		FileUtil.listAbsoluteFiles(sourceFile2, array);
-		FileUtil.listAbsoluteFiles(sourceFile3, array);
-		FileUtil.listAbsoluteFiles(sourceFile4, array);
-		FileUtil.listAbsoluteFiles(sourceFile5, array);
-		
-		HashMap<String, String> map = new HashMap<String, String>();
-		HashSet<String> repeatKeys = new HashSet<String>();
-		
-		for(File f:array){
-			if(map.containsKey(f.getName())){
-				if(!repeatKeys.contains(f.getName())){
-					repeatKeys.add(f.getName());
-				}
-			} else {
-				map.put(f.getName(), f.getAbsolutePath());
-			}
-		}
-		
-		for(File f:array){
-			if(repeatKeys.contains(f.getName())){
-				map.remove(f.getName());
-				String absolutePath = f.getAbsolutePath();
-				if(absolutePath.indexOf("\\FMS-CORE") >= 0){
-					absolutePath = setMatchKey(absolutePath,"/FMS-CORE");
-				}
-				if(absolutePath.indexOf("\\FMS-IF") >= 0){
-					absolutePath = setMatchKey(absolutePath,"/FMS-IF");
-				}
-				if(absolutePath.indexOf("\\MPS") >= 0){
-					absolutePath = setMatchKey(absolutePath,"/MPS");
-				}
-				map.put(absolutePath, f.getAbsolutePath());
-			}
-		}
-		
-		return map;
-	}
-	
-	private static String setMatchKey(String absolutePath,String findKey){
-		String path = absolutePath.replace("\\", "/");
-		path = path.substring(path.indexOf(findKey));
-		
-		return path;
-	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -796,7 +746,7 @@ public class CheckFile {
 	 */
 	public static Issue[] getIssueInfo(String issueListFilterPattern,boolean readModuleInfo) throws IOException{
 		String configListFile = config.getPropertyValue("check", "issue_list_file");  
-		updateSvn(configListFile);
+		SVNUtil.updateSvnByTortoiseSvn(configListFile, svnInstallPath);
 		//read base info
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile,0,
 				columnNameMapIssueList,issueListFilterPattern,0);//sheet 0
@@ -837,8 +787,7 @@ public class CheckFile {
 	
 	private static void setIssueModule(Issue[] issues) throws IOException{
 		String moduleListFile = config.getPropertyValue("check", "module_list_file");
-		updateSvn(moduleListFile);
-
+		SVNUtil.updateSvnByTortoiseSvn(moduleListFile, svnInstallPath);
 		
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
 				columnNameMapModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 1
@@ -902,7 +851,7 @@ public class CheckFile {
 	/**
 	 * update svn
 	 * @param destDirectory
-	 */
+	
 	private static void updateSvn(String destDirectory){
 		StringBuffer strBufClean = new StringBuffer();
 		String svnInstallPath = config.getPropertyValue("global", "svn_install_path");
@@ -931,7 +880,7 @@ public class CheckFile {
 		}
 		
 	}
-	
+	 */
 	private static boolean isNumber(String input){
 		String regex = "^[1-9][0-9]*[.]?(\\d)*$";
 		Pattern p = Pattern.compile(regex);

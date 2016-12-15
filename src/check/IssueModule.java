@@ -26,6 +26,9 @@ public class IssueModule {
 	private String patchYouhi;
 	
 	private String utSheetName;
+	private String rlsStatus;
+	private String rlsVersion;
+	private String updatKbn; 
 	
 	public IssueModule(){
 		
@@ -88,5 +91,23 @@ public class IssueModule {
 	}
 	public void setUtSheetName(String utSheetName) {
 		this.utSheetName = utSheetName;
+	}
+	public String getRlsVersion() {
+		return rlsVersion;
+	}
+	public void setRlsVersion(String rlsVersion) {
+		this.rlsVersion = rlsVersion;
+	}
+	public String getRlsStatus() {
+		return rlsStatus;
+	}
+	public void setRlsStatus(String rlsStatus) {
+		this.rlsStatus = rlsStatus;
+	}
+	public String getUpdatKbn() {
+		return updatKbn;
+	}
+	public void setUpdatKbn(String updatKbn) {
+		this.updatKbn = updatKbn;
 	}
 }

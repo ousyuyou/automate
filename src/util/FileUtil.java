@@ -2,7 +2,10 @@ package util;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+
+import svn.SVNUtil;
 
 public class FileUtil {
 
@@ -77,5 +80,54 @@ public class FileUtil {
 	            }
 	     }
 	}
+	
+	public static HashMap<String, String> listSources(String[] sourcePaths,String svnInstallPath){
+		ArrayList<File> array = new ArrayList<File>();
+		
+		for(String path:sourcePaths){
+			SVNUtil.updateSvnByTortoiseSvn(path, svnInstallPath);
+			listAbsoluteFiles(path, array);
+		}
 
+		HashMap<String, String> map = new HashMap<String, String>();
+		HashSet<String> repeatKeys = new HashSet<String>();
+		//ファイル名のみの場合、ファイル名の重複するケースある
+		for(File f:array){
+			if(map.containsKey(f.getName())){
+				if(!repeatKeys.contains(f.getName())){
+					repeatKeys.add(f.getName());//put重複ファイ名to map
+				}
+			} else {
+				map.put(f.getName(), f.getAbsolutePath());
+			}
+		}
+		//再度全てループし、重複のファイル名をディレクトリ名に置き換える
+		for(File f:array){
+			if(repeatKeys.contains(f.getName())){
+				map.remove(f.getName());
+				String absolutePath = f.getAbsolutePath();
+				if(absolutePath.indexOf("\\FMS-CORE") >= 0){
+					//例：311.xmlを/FMS-CORE/conf/settings/formula/expense/311.xmlに置き換える
+					absolutePath = setMatchKey(absolutePath,"/FMS-CORE");
+				}
+				if(absolutePath.indexOf("\\FMS-IF") >= 0){
+					absolutePath = setMatchKey(absolutePath,"/FMS-IF");
+				}
+				if(absolutePath.indexOf("\\MPS") >= 0){
+					absolutePath = setMatchKey(absolutePath,"/MPS");
+				}
+				map.put(absolutePath, f.getAbsolutePath());
+			}
+		}
+		
+		return map;
+	}
+	
+	private static String setMatchKey(String absolutePath,String findKey){
+		String path = absolutePath.replace("\\", "/");
+		path = path.substring(path.indexOf(findKey));
+		
+		return path;
+	}
+	
 }
