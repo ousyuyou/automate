@@ -9,15 +9,15 @@ public class Calculator {
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		String str = "((3+4)*2+2*5)-(5+10.5)/5";
+		String str = "FS_DC_MPS_V3.20.8.B01\nFS_DC_MPS_V3.20.9.B01ÅΩFS_DC_MPS_V3.20.9.B01";
 //		String str = "(abc>ab)&(3!2|2>1)";
 
 		FormularParser parser = new FormularParser();
 		Calculator cal = new Calculator();
-		Stack<String> ope = parser.parse(str,true);
+		Stack<String> ope = parser.parse(str,false);
 		System.out.println(parser.toString());
 				
-		String dec = calculate(ope,true);
+		String dec = calculate(ope,false);
 		System.out.println(dec);
 	}
 	
@@ -56,6 +56,7 @@ public class Calculator {
 					case '&':
 					case '|':
 					case '!':
+					case 'ÅΩ':
 						String op2 = operand.pop();
 						String op1 = operand.pop();
 						v = fundamentalCalculate(str.charAt(0),op1,op2);
@@ -86,6 +87,9 @@ public class Calculator {
 				return String.valueOf(v);
 			case '!':
 				v = strOp1.equals(strOp2)?0:1;
+				return String.valueOf(v);
+			case 'ÅΩ':
+				v = strOp1.contains(strOp2)?1:0;
 				return String.valueOf(v);
 			case '+':
 			case '-':

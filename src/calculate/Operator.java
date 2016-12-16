@@ -30,6 +30,7 @@ public class Operator {
 			case '&':
 			case '|':
 			case '!':
+			case '½':
 				return true;
 			default:
 				return false;
@@ -46,6 +47,7 @@ public class Operator {
 			case '<':
 			case '=':
 			case '!':
+			case '½':
 				ope.priority = 1;
 				break;
 			case '*':

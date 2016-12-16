@@ -42,8 +42,9 @@ public class RlsCheck {
 		appConfig = new ConfigFile(new File("e:/config/config.dat"));
 	}
 	//rls version
-	private static String previous_rls_version = appConfig.getPropertyValue("global", "previous_rls_version");
+//	private static String previous_rls_version = appConfig.getPropertyValue("global", "previous_rls_version");
 	private static String current_rls_version = appConfig.getPropertyValue("global", "current_rls_version");
+	private static String current_ikou_rls_version = appConfig.getPropertyValue("global", "current_ikou_rls_version");
 	//dev source path & rls path source
 	private static String mps_dev_path = appConfig.getPropertyValue("global", "mps_dev_path");
 	private static String mps_rls_path = appConfig.getPropertyValue("global", "mps_rls_path");
@@ -81,8 +82,8 @@ public class RlsCheck {
 		columnNameMapModuleList.put("PROJECT_ID", "D");
 		columnNameMapModuleList.put("MODULE_ID", "E");
 		columnNameMapModuleList.put("MODULE_PATH", "F");
-		columnNameMapModuleList.put("RELEASE_STATUS", "L");
 		columnNameMapModuleList.put("RELEASE_VERSION", "K");
+		columnNameMapModuleList.put("RELEASE_STATUS", "L");
 		columnNameMapModuleList.put("UPDATE_KBN", "G");
 	}
 	/**
@@ -99,12 +100,185 @@ public class RlsCheck {
 		columnNameMapCommonModuleList.put("PATCH_YOUHI", "L");
 		columnNameMapCommonModuleList.put("RELEASE_VERSION", "H");
 	}
+	
+	
+	/**
+	 * module list,database,shell's setting...
+	 */
+	private static Map<String,String> columnNameMapIkouModuleList = new HashMap<String, String>();
+	static {
+		columnNameMapIkouModuleList.put("ISSUE_ID", "B");
+		columnNameMapIkouModuleList.put("PROJECT_ID", "D");
+		columnNameMapIkouModuleList.put("MODULE_PATH", "E");
+		columnNameMapIkouModuleList.put("RELEASE_VERSION", "K");
+		columnNameMapIkouModuleList.put("RELEASE_STATUS", "L");
+		columnNameMapIkouModuleList.put("UPDATE_KBN", "G");
+	}
+	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException{
-		// TODO Auto-generated method stub
-		Issue[] issues = getIssueInfo("RELEASE_VERSION="+current_rls_version, true);
+		// check suritoukei
+		checkSuritoukei();
+		//check ikou
+		checkIkou();
+	}
+	
+	private static void checkIkou() throws IOException{
+		Issue[] issues = getIssueInfo("RELEASE_VERSION⊃"+current_ikou_rls_version, true,true);
+		
+		String dev_sourc1 = appConfig.getPropertyValue("ikou_check", "ikou_dev_path1");//MPS_IKOU/configuration
+		String dev_sourc2 = appConfig.getPropertyValue("ikou_check", "ikou_dev_path2");//MPS_IKOU/src
+		String dev_sourc3 = appConfig.getPropertyValue("ikou_check", "ikou_dev_path3");//MPS_IKOU_CHECK/src
+		String[] dev_sources = new String[]{dev_sourc1,dev_sourc2,dev_sourc3};
+		Map<String, String> devSourceMap = FileUtil.listSources(dev_sources, svnInstallPath);
+		
+		String rls_sourc1 = appConfig.getPropertyValue("ikou_check", "ikou_rls_path1");//MPS_IKOU/configuration
+		String rls_sourc2 = appConfig.getPropertyValue("ikou_check", "ikou_rls_path2");//MPS_IKOU/src
+		String rls_sourc3 = appConfig.getPropertyValue("ikou_check", "ikou_rls_path3");//MPS_IKOU_CHECK/src
+		String[] rls_sources = new String[]{rls_sourc1,rls_sourc2,rls_sourc3};
+		Map<String, String> rlsSourceMap = FileUtil.listSources(rls_sources, svnInstallPath);
+		
+		String prev_rls_sourc1 = appConfig.getPropertyValue("ikou_check", "ikou_prev_rls_path1");//MPS_IKOU/configuration
+		String prev_rls_sourc2 = appConfig.getPropertyValue("ikou_check", "ikou_prev_rls_path2");//MPS_IKOU/src
+		String prev_rls_sourc3 = appConfig.getPropertyValue("ikou_check", "ikou_prev_rls_path3");//MPS_IKOU_CHECK/src
+		String[] rls_prev_sources = new String[]{prev_rls_sourc1,prev_rls_sourc2,prev_rls_sourc3};
+//		Map<String, String> rlsPrevSourceMap = FileUtil.listSources(rls_prev_sources, svnInstallPath);
+
+		//compare prev rls folder with current rls folder 
+		MergeHeroDirCompareResult[] results = new MergeHeroDirCompareResult[rls_prev_sources.length];
+		
+		ArrayList<String> arrLeftFileOnly = new ArrayList<String>();
+		ArrayList<String> arrRighFiletOnly = new ArrayList<String>();
+		ArrayList<String> arrFileDiff = new ArrayList<String>();
+		
+		for(int i = 0 ; i < rls_prev_sources.length;i++){
+			MergeHeroDirCompare compare = new MergeHeroDirCompare(rls_prev_sources[i],rls_sources[i],true);
+			results[i] = compare.executeCompare();
+			//
+//			System.out.println(results[i].getM_strComResultDetail());
+			
+			for(String leftFileOnly:results[i].getFileLeftOnly()){
+				arrLeftFileOnly.add(leftFileOnly.replaceAll("\\\\", "/"));
+				//DEBUG
+				System.out.println("left: "+rls_prev_sources[i] + " right: "+rls_sources[i]);
+				System.out.println(leftFileOnly.replaceAll("\\\\", "/"));
+//				System.out.println("left only: "+appendixs[i]+"/"+leftFileOnly.replaceAll("\\\\", "/"));
+			}
+			for(String rightFileOnly:results[i].getFileRightOnly()){
+				arrRighFiletOnly.add(rightFileOnly.replaceAll("\\\\", "/"));
+				//DEBUG
+				System.out.println("left: "+rls_prev_sources[i] + " right: "+rls_sources[i]);
+				System.out.println(rightFileOnly.replaceAll("\\\\", "/"));
+			}
+			for(String diffFile:results[i].getFileDiff()){
+				arrFileDiff.add(diffFile.replaceAll("\\\\", "/"));
+				//DEBUG
+//				System.out.println("diff file: "+appendixs[i]+"/"+diffFile.replaceAll("\\\\", "/"));
+			}
+		}
+		
+		ArrayList<IssueModule> modules = new ArrayList<IssueModule>();
+		
+		for(Issue issue:issues){
+			for(IssueModule module:issue.getModules()){
+				String modulePath = module.getModulePath();
+				String rlsStatus = module.getRlsStatus();
+				modules.add(module);//put all the module to list for next check
+
+				if(!"リリース済".equals(rlsStatus)){
+					printMessage(issue.getId() + ": "+modulePath + " 移行リリースステータス記載不正："+rlsStatus);
+				}
+				
+				String rlsVersion = module.getRlsVersion();
+				if(!current_ikou_rls_version.equals(rlsVersion)){
+					printMessage(issue.getId() + ": "+modulePath + " 移行リリースVer記載不正："+rlsVersion);
+				}
+				
+				//開発版とリリース版の比較,source only
+				if(module.getModelType() == 1){ //source
+					//compare develop source with rls source
+					String devModulePath = devSourceMap.get(modulePath);
+					String rlsModulePath = rlsSourceMap.get(modulePath);
+					if(StringUtils.isEmpty(devModulePath) || StringUtils.isEmpty(rlsModulePath)){
+						printMessage(issue.getId() + ": "+modulePath + " 移行ソースファイルが見つからない、ファイル重複するかチェックして下さい");
+						System.err.println("dev path: "+devModulePath);
+						System.err.println("rls path: "+rlsModulePath);
+						continue;
+					}
+					List<String> original = fileToLines(devModulePath);
+			        List<String> revised  = fileToLines(rlsModulePath);
+
+			        // Compute diff. Get the Patch object. Patch is the container for computed deltas.
+			        Patch<String> patch = DiffUtils.diff(original, revised);
+			        if(patch.getDeltas().size() > 0){
+						printMessage(issue.getId() + ": "+modulePath + " 移行ソース開発版とリリース版差分あり。確認ください。");
+
+				        for (Delta<String> delta: patch.getDeltas()) {
+				            System.out.println(delta);
+				        }
+			        }
+				} else {//db,script,message
+					//チェック不要
+//					System.out.println("common resouce: "+module.getModuleID());
+				}
+				
+				//資材一覧のモジュールが確かにファイル差分に存在することをチェック
+				if(module.getModelType() == 1){ //source;java,xml
+					String updateKbn = module.getUpdatKbn();
+					if("新規".equals(updateKbn)){
+						boolean contains = findModulePathFromDiffResult(arrRighFiletOnly,module.getModulePath());
+						
+						if(!contains){
+							printMessage(issue.getId() + ": "+modulePath + " 移行資材一覧に新規ファイルだが、前回RLS版と今回RLS版のフォルダ比較にて新規ではない");
+						}
+					} else if("更新".equals(updateKbn)){
+						boolean contains = findModulePathFromDiffResult(arrFileDiff,module.getModulePath());
+
+						if(!contains){
+							printMessage(issue.getId() + ": "+modulePath + " 移行資材一覧に更新ファイルだが、前回RLS版と今回RLS版のフォルダ比較にて更新ではない");
+						}
+					} else if("削除".equals(updateKbn)){
+						boolean contains = findModulePathFromDiffResult(arrLeftFileOnly,module.getModulePath());
+						
+						if(!contains){
+							printMessage(issue.getId() + ": "+modulePath + " 移行資材一覧に削除ファイルだが、前回RLS版と今回RLS版のフォルダ比較にて削除ではない");
+						}
+					}
+				} else {//script,message,application resource
+					//now does not exists
+				}
+			}
+		}
+		
+		//フォルダ比較で新規ファイルが確かに資材一覧に記載されているか
+		for(String rightFile:arrRighFiletOnly){
+			boolean contains = containsJudge(modules,rightFile,true);
+			
+			if(!contains){
+				printMessage("right only file :"+ rightFile+" フォルダコンペアで新規ファイルだが、移行資材一覧に記載されていない");
+			}
+		}
+		//フォルダ比較で削除ファイルが確かに資材一覧に記載されているか
+		for(String leftFile:arrLeftFileOnly){
+			boolean contains = containsJudge(modules,leftFile,true);
+			if(!contains){
+				printMessage("left only file :"+ leftFile+" フォルダコンペアで削除ファイルだが、移行資材一覧に記載されていない");
+			}
+		}
+		
+		//フォルダ比較で更新ファイルが確かに資材一覧に記載されているか
+		for(String diffFile:arrFileDiff){
+			boolean contains = containsJudge(modules,diffFile,true);
+			if(!contains){
+				printMessage("file diff :"+ diffFile+" フォルダコンペアで更新ファイルだが、移行資材一覧に記載されていない");
+			}
+		}
+	}
+	
+	private static void checkSuritoukei() throws IOException{
+		Issue[] issues = getIssueInfo("RELEASE_VERSION⊃"+current_rls_version, true,false);
 		
 		//list develop sources
 		String mps_source_apps = mps_dev_path + mps_path_apps;
@@ -142,7 +316,7 @@ public class RlsCheck {
 		
 		String[] rls_prev_sources = new String[]{mps_prev_rls_source_apps,mps_prev_rls_source_src,mps_prev_rls_source_layout,
 				mps_prev_rls_source_shell,if_prev_rls_source_path,core_prev_rls_source_path,core_prev_rls_source_conf};
-		Map<String, String> rlsPrevSourceMap = FileUtil.listSources(rls_prev_sources, svnInstallPath);
+//		Map<String, String> rlsPrevSourceMap = FileUtil.listSources(rls_prev_sources, svnInstallPath);
 		
 		//compare prev rls folder with current rls folder 
 		MergeHeroDirCompareResult[] results = new MergeHeroDirCompareResult[rls_prev_sources.length];
@@ -282,7 +456,7 @@ public class RlsCheck {
 		
 		//フォルダ比較で新規ファイルが確かに資材一覧に記載されているか
 		for(String rightFile:arrRighFiletOnly){
-			boolean contains = containsJudge(modules,rightFile);
+			boolean contains = containsJudge(modules,rightFile,false);
 			
 			if(!contains){
 				printMessage("right only file :"+ rightFile+" フォルダコンペアで新規ファイルだが、資材一覧に記載されていない");
@@ -290,7 +464,7 @@ public class RlsCheck {
 		}
 		//フォルダ比較で削除ファイルが確かに資材一覧に記載されているか
 		for(String leftFile:arrLeftFileOnly){
-			boolean contains = containsJudge(modules,leftFile);
+			boolean contains = containsJudge(modules,leftFile,false);
 			if(!contains){
 				printMessage("left only file :"+ leftFile+" フォルダコンペアで削除ファイルだが、資材一覧に記載されていない");
 			}
@@ -298,7 +472,7 @@ public class RlsCheck {
 		
 		//フォルダ比較で更新ファイルが確かに資材一覧に記載されているか
 		for(String diffFile:arrFileDiff){
-			boolean contains = containsJudge(modules,diffFile);
+			boolean contains = containsJudge(modules,diffFile,false);
 			if(!contains){
 				printMessage("file diff :"+ diffFile+" フォルダコンペアで更新ファイルだが、資材一覧に記載されていない");
 			}
@@ -341,7 +515,11 @@ public class RlsCheck {
 	 * @param diffFile,sql file is not included
 	 * @return
 	 */
-	private static boolean containsJudge(ArrayList<IssueModule> modules,String diffFile){
+	private static boolean containsJudge(ArrayList<IssueModule> modules,String diffFile,boolean ikouResource){
+		if(ikouResource){
+			return findJavaXmlResourceFromFileName(modules,diffFile);
+		}
+		//suritoukei resource
 		boolean contains = false;
 		if(diffFile.endsWith("application-messages.properties")){ //message file
 			contains = findKeyFromModuleID(modules,"メッセージ一覧（数理統計）");
@@ -418,7 +596,7 @@ public class RlsCheck {
 	 * @return
 	 * @throws IOException
 	 */
-	public static Issue[] getIssueInfo(String issueListFilterPattern,boolean readModuleInfo) throws IOException{
+	private static Issue[] getIssueInfo(String issueListFilterPattern,boolean readModuleInfo,boolean ikouResource) throws IOException{
 		/**
 		 * issue list
 		 */
@@ -441,11 +619,71 @@ public class RlsCheck {
 		}
 		
 		if(readModuleInfo){
-			//read module info
-			setIssueModule(issues);
+			if(ikouResource == false){
+				//read module info
+				setIssueModule(issues);
+			}else{
+				setIkouIssueModel(issues);
+			}
 		}
 		
 		return issues;
+	}
+	
+	private static void setIkouIssueModel(Issue[] issues) throws IOException{
+		String moduleListFile = appConfig.getPropertyValue("ikou_check", "ikou_module_list_file");
+		SVNUtil.updateSvnByTortoiseSvn(moduleListFile, svnInstallPath);
+		
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
+				columnNameMapIkouModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 1
+		
+		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
+		for(Issue issue:issues){
+			issueMap.put(issue.getId(), issue);
+		}
+		
+		for(int i = 0 ; i<mapTarget.length;i++){
+			String issueID = mapTarget[i].get("ISSUE_ID");
+			if(issueMap.containsKey(issueID)){
+				Issue issue = issueMap.get(issueID);
+				IssueModule module = new IssueModule();
+				module.setIssueID(issueID);
+				
+				module.setModulePath(mapTarget[i].get("MODULE_PATH"));
+				
+				module.setProjectID(mapTarget[i].get("PROJECT_ID"));
+				
+				module.setRlsStatus(mapTarget[i].get("RELEASE_STATUS"));//rls status
+				module.setRlsVersion(mapTarget[i].get("RELEASE_VERSION"));//rls version
+				module.setUpdatKbn(mapTarget[i].get("UPDATE_KBN"));//update kbn
+				//java source,xml
+				module.setModelType(1);
+				issue.addIssueModule(module);
+			}
+		}
+		//common source does not exists
+//		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,2,
+//				columnNameMapCommonModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 2
+//		for(int i = 0 ; i<mapTarget.length;i++){
+//			String issueID = mapTarget[i].get("ISSUE_ID");
+//			
+//			if(issueMap.containsKey(issueID)){
+//				Issue issue = issueMap.get(issueID);
+//				IssueModule module = new IssueModule();
+//				module.setIssueID(issueID);
+//				
+//				module.setModulePath(mapTarget[i].get("MODULE_PATH"));
+//				module.setModuleID(mapTarget[i].get("MODULE_ID"));
+//				//db,message,shell
+//				module.setModelType(2);
+//				module.setDdlSql(mapTarget[i].get("DDL_SQL"));
+//				module.setPatchYouhi(mapTarget[i].get("PATCH_YOUHI"));
+//				module.setRlsStatus(mapTarget[i].get("RELEASE_STATUS"));//rls status
+//				module.setRlsVersion(mapTarget[i].get("RELEASE_VERSION"));//rls version
+//				//add
+//				issue.addIssueModule(module);
+//			}
+//		}
 	}
 	
 	private static void setIssueModule(Issue[] issues) throws IOException{
