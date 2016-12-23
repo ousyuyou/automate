@@ -60,10 +60,7 @@ public class MergeHeroDirCompare {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		String strDir1 = "E:/svn/NTTData/40_実装/01_ソース/移行ソース/MPS_IKOU_RELEASE_8B01/src";
-		String strDir2 = "E:/svn/NTTData/40_実装/01_ソース/移行ソース/MPS_IKOU_RELEASE/src";
-		MergeHeroDirCompare compare = new MergeHeroDirCompare(strDir1,strDir2,true);
-		System.out.println(compare.executeCompare().getM_strComResultDetail());
+		
 	}
 	
 	public MergeHeroDirCompare(String m_strCompareDir,String m_strToDir,boolean m_bRecursive){

@@ -39,7 +39,7 @@ import difflib.Patch;
 public class RlsCheck {
 	private static ConfigFile appConfig = null;
 	static {
-		appConfig = new ConfigFile(new File("e:/config/config.dat"));
+		appConfig = new ConfigFile(new File("e:/config/config_utf8.dat"));
 	}
 	//rls version
 //	private static String previous_rls_version = appConfig.getPropertyValue("global", "previous_rls_version");
@@ -119,10 +119,12 @@ public class RlsCheck {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException{
+		System.out.println("Start...");
 		// check suritoukei
 		checkSuritoukei();
 		//check ikou
-		checkIkou();
+//		checkIkou();
+		System.out.println("Finished");
 	}
 	
 	private static void checkIkou() throws IOException{

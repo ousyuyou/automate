@@ -9,12 +9,15 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.model.InternalWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheet;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTWorkbook;
 
 import calculate.Calculator;
 
@@ -25,6 +28,11 @@ public class ExcelUtil {
 	
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	private static int index = 0;
+	
+	public static void main(String[] args) throws IOException{
+		
+	}
+	
 	/**
 	 * 
 	 * @param fileName excel file path
@@ -51,6 +59,81 @@ public class ExcelUtil {
 		return sheetNos;
 	}
 	
+	/**
+	 * get all sheet names
+	 * @param fileName
+	 * @return
+	 * @throws IOException
+	 */
+	public static String[] getAllSheetNames(String fileName) throws IOException{
+		String[] sheetNames = null;
+		FileInputStream fileIn = null;
+		
+		try{
+			fileIn = new FileInputStream(fileName);
+	        Workbook wb = getWorkBookByExcelPath(fileName);
+	       
+	        if(wb instanceof XSSFWorkbook){
+	        	XSSFWorkbook xsf = (XSSFWorkbook)wb;
+	        	CTWorkbook ctb = xsf.getCTWorkbook();
+	        	CTSheet[] sheets =  ctb.getSheets().getSheetArray();
+	        	sheetNames = new String[sheets.length];
+	        	for(int i = 0 ; i < sheets.length; i++){
+	        		sheetNames[i] = sheets[i].getName();
+	        		//System.out.println(sheetNames[i]);
+	        	}
+	        }else if(wb instanceof HSSFWorkbook){
+	        	HSSFWorkbook hsf = (HSSFWorkbook)wb;
+	        	InternalWorkbook itwb = hsf.getInternalWorkbook();
+	        	//itwb.get
+	        	int num = itwb.getNumSheets();
+	        	sheetNames = new String[num];
+	        	for(int i = 0;i < num;i++){
+	        		sheetNames[i] = itwb.getSheetName(i);
+	        		//System.out.println(sheetNames[i]);
+	        	}
+	        }
+	       
+		} finally{
+			if(fileIn!=null){
+				fileIn.close();
+			}
+		}
+		return sheetNames;
+	}
+	/**
+	 * 
+	 * @param fileName
+	 * @return
+	 * @throws IOException
+	 */
+	public static int getSheetNums(String fileName) throws IOException{
+		FileInputStream fileIn = null;
+		
+		try{
+			fileIn = new FileInputStream(fileName);
+	        Workbook wb = getWorkBookByExcelPath(fileName);
+	       
+	        if(wb instanceof XSSFWorkbook){
+	        	XSSFWorkbook xsf = (XSSFWorkbook)wb;
+	        	CTWorkbook ctb = xsf.getCTWorkbook();
+	        	return ctb.getSheets().getSheetArray().length;
+	        }else if(wb instanceof HSSFWorkbook){
+	        	HSSFWorkbook hsf = (HSSFWorkbook)wb;
+	        	InternalWorkbook itwb = hsf.getInternalWorkbook();
+	        	//itwb.get
+	        	return itwb.getNumSheets();
+	        }
+	       
+		} finally{
+			if(fileIn!=null){
+				fileIn.close();
+			}
+		}
+		return 0;
+	}
+	
+
 	/**
 	 * 
 	 * @param fileName excel file name
@@ -124,6 +207,48 @@ public class ExcelUtil {
 		return mapArr;
 	}
 	
+	/**
+	 * 
+	 * @param fileName
+	 * @param sheetNo: start from zero
+	 * @param rowno: start from zero
+	 * @param alphaColumnName: column's alphabet name
+	 * @return
+	 * @throws IOException
+	 */
+	public static String[] getValueByRowColumn(String fileName,int sheetNos[],int rowno,String alphaColumnName)
+							throws IOException{
+		String values[] = new String[sheetNos.length];
+		FileInputStream fileIn = null;
+		try{
+			fileIn = new FileInputStream(fileName);
+	        Workbook wb = getWorkBookByExcelPath(fileName);
+	        
+	        //init
+	        if(map == null || map.size() == 0){
+	        	setColumnNameIndex(DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH,map,DEFAULT_EXCEL_COLUMN_DIGIT_WIDTH);
+	        }
+	        Map<String,String> mapColumn = new HashMap<String, String>();
+	        mapColumn.put("value", alphaColumnName);
+	        
+	        //convert column alpha to column index
+	        TreeMap<String, Integer> destColIndexs = convertColumnAlphaToIndex(mapColumn);
+	        
+	        for(int i = 0 ; i < sheetNos.length; i++){
+	        	Sheet sheet = wb.getSheetAt(sheetNos[i]);
+		        Row row = sheet.getRow(rowno);
+		        values[i] = getCellValue(row,destColIndexs.get("value").intValue());
+	        }
+	        
+		} finally{
+			if(fileIn!=null){
+				fileIn.close();
+			}
+		}
+		
+		return values;
+	}
+	
 	private static String getCellValue(Row row,int columnIndex){
 		String value = "";
 		if(row.getCell(columnIndex) == null){//bug?
@@ -146,6 +271,7 @@ public class ExcelUtil {
 		}
 		return value;
 	}
+
 	
 	private static TreeMap<String, Integer> convertColumnAlphaToIndex(Map<String,String> destColNames){
 		TreeMap<String, Integer> destColIndexs = new TreeMap<String, Integer>();
@@ -209,6 +335,7 @@ public class ExcelUtil {
         	
         } catch(Exception ioe){
         	System.err.println(filepath);
+        	ioe.printStackTrace();
         	throw new IOException(ioe);
         }
         

@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.apache.commons.lang.StringUtils;
+
 import svn.SVNUtil;
 
 public class FileUtil {
@@ -14,6 +16,7 @@ public class FileUtil {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
+
 
 	}
 	public static void listFiles(String strPath,ArrayList<String> arrayOut){
@@ -40,47 +43,106 @@ public class FileUtil {
 	     }
 	}
 	
+	/**
+	 * list all file
+	 * @param strPath
+	 * @param arrayOut
+	 */
 	public static void listAbsoluteFiles(String strPath,ArrayList<File> arrayOut){
 		listAbsoluteFiles(new File(strPath), arrayOut);
 	}
+	
 	/**
 	 * 
 	 * list all file
 	 * @param f
 	 * @param arrayOut
 	 */
-	public static void listAbsoluteFiles(File f,ArrayList<File> arrayOut){
-		 if(f != null){
-	            if(f.isDirectory()){
-	                File[] fileArray=f.listFiles();
-	                if(fileArray!=null){
-	                    for (int i = 0; i < fileArray.length; i++) {
-	                    	listAbsoluteFiles(fileArray[i],arrayOut);
-	                    }
-	                }
-	            } else {
-	            	arrayOut.add(f);
-	            }
-	     }
+	public static void listAbsoluteFiles(File path,ArrayList<File> arrayOut){
+		listAbsoluteFiles(path,arrayOut,"");
 	}
-	
-	public static void listAbsoluteFiles(File f,ArrayList<File> arrayOut,String containKey){
-		 if(f != null){
-	            if(f.isDirectory()){
-	                File[] fileArray=f.listFiles();
+	/**
+	 * list all files contain the specified key
+	 * @param f
+	 * @param arrayOut
+	 * @param containKey
+	 */
+	public static void listAbsoluteFiles(File path,ArrayList<File> arrayOut,String specKey){
+		 if(path != null){
+	            if(path.isDirectory()){
+	                File[] fileArray = path.listFiles();
 	                if(fileArray!=null){
 	                    for (int i = 0; i < fileArray.length; i++) {
-	                    	listAbsoluteFiles(fileArray[i],arrayOut,containKey);
+	                    	listAbsoluteFiles(fileArray[i],arrayOut,specKey);
 	                    }
 	                }
 	            } else {
-	            	if(f.getName().contains(containKey)){
-	            		arrayOut.add(f);
+	            	if(StringUtils.isBlank(specKey)){ //no filter key
+	            		arrayOut.add(path);
+	            	} else {
+		            	if(path.getName().contains(specKey)){
+		            		arrayOut.add(path);
+		            	}
 	            	}
 	            }
 	     }
 	}
 	
+	/**
+	 * 
+	 * @param f
+	 * @param arrayOut
+	 * @param specKey
+	 * @param recurse
+	 */
+	public static void listAbsoluteFilesNotRecurse(File path,ArrayList<File> arrayOut,String specKey){
+		 if(path != null){
+	            if(path.isDirectory()){
+	                File[] fileArray = path.listFiles();
+	                
+	                if(fileArray != null){
+	                    for (int i = 0; i < fileArray.length; i++) {
+	                    	if(fileArray[i].isFile() && fileArray[i].getName().contains(specKey)){
+	                    		arrayOut.add(fileArray[i]);
+	                    	}
+	                    }
+	                }
+	            } else {
+	            	;
+	            }
+	     }
+	}
+	
+	/**
+	 * list all sub directory
+	 * @param f
+	 * @param arrayOut
+	 */
+	public static void listSubDirectorys(File path,ArrayList<File> arrayOut){
+		 if(path != null){
+	            if(path.isDirectory()){
+            		arrayOut.add(path);
+            		
+	                File[] fileArray = path.listFiles();
+	                if(fileArray != null){
+	                    for (int i = 0; i < fileArray.length; i++) {
+	                    	if(fileArray[i].isDirectory()){
+		                    	listSubDirectorys(fileArray[i],arrayOut);
+	                    	}
+	                    }
+	                }
+	            } else {
+	            	;
+	            }
+	     }
+	}
+	
+	/**
+	 * list all mps sources
+	 * @param sourcePaths
+	 * @param svnInstallPath
+	 * @return key:file name or relative path name(file double),value:absolute file name
+	 */
 	public static HashMap<String, String> listSources(String[] sourcePaths,String svnInstallPath){
 		ArrayList<File> array = new ArrayList<File>();
 		

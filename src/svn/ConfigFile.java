@@ -283,7 +283,7 @@ public class ConfigFile {
         BufferedReader reader = null;
         Collection lines = new ArrayList();
         try {
-            reader = new BufferedReader(new InputStreamReader(new FileInputStream(myFile), "sjis"));
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(myFile), "utf-8"));
             String line;
             while ((line = reader.readLine()) != null) {
                 lines.add(line);

@@ -17,15 +17,22 @@ public class Issue {
 	private String dealFlag;
 	private String ikouResource;
 	
+	private String yoteiKousuResearch;
 	private String yoteiKousuCD;
 	private String yoteiKousuUT;
 	private String yoteiKousuST;
 	
+	private String jisekiResearch;
 	private String jisekiKousuCD;
 	private String jisekiKousuUT;
 	private String jisekiKousuST;
 	
 	private String rlsVersion;
+	
+	private String researchPercent;
+	private String cdPercent;
+	private String utPercent;
+	private String stPercent;
 	
 //	private IssueModule[] modules;
 	private IssueFunction[] functions;
@@ -225,6 +232,54 @@ public class Issue {
 
 	public void setRlsVersion(String rlsVersion) {
 		this.rlsVersion = rlsVersion;
+	}
+
+	public String getYoteiKousuResearch() {
+		return yoteiKousuResearch;
+	}
+
+	public void setYoteiKousuResearch(String yoteiKousuResearch) {
+		this.yoteiKousuResearch = yoteiKousuResearch;
+	}
+
+	public String getJisekiResearch() {
+		return jisekiResearch;
+	}
+
+	public void setJisekiResearch(String jisekiResearch) {
+		this.jisekiResearch = jisekiResearch;
+	}
+
+	public String getResearchPercent() {
+		return researchPercent;
+	}
+
+	public void setResearchPercent(String researchPercent) {
+		this.researchPercent = researchPercent;
+	}
+
+	public String getUtPercent() {
+		return utPercent;
+	}
+
+	public void setUtPercent(String utPercent) {
+		this.utPercent = utPercent;
+	}
+
+	public String getStPercent() {
+		return stPercent;
+	}
+
+	public void setStPercent(String stPercent) {
+		this.stPercent = stPercent;
+	}
+
+	public String getCdPercent() {
+		return cdPercent;
+	}
+
+	public void setCdPercent(String cdPercent) {
+		this.cdPercent = cdPercent;
 	}
 
 }
