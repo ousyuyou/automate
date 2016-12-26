@@ -213,16 +213,13 @@ public class CheckFile {
 			System.out.println("issue: " + iuuseID + " case数: "
 					+ caseCountMap.get(iuuseID));
 		}
+		//show the review error
+		readReviewRecord(issuesforST,caseCountMap);
 		// check実績工数
 		checkWorkDay(issuesforST,2);
-		//show the review error
-
-		readReviewRecord(issuesforST);
-		// check review record
-
 	}
 	
-	private static void readReviewRecord(Issue[] issues)
+	private static void readReviewRecord(Issue[] issues,Map<String, Integer> caseCountMap)
 			throws IOException {
 		String filePath = config.getPropertyValue("review",
 				"review_record_file_inside");
@@ -245,6 +242,11 @@ public class CheckFile {
 		Map<String, String>[] listReviewInsideCdUT = ExcelUtil
 				.readContentFromExcelMult(filePath, 0, columnNameMapReviewList,
 						"CRITICIZE_KBN!確認", 2);
+		
+		//count cd error by issue
+		Map<String,Integer> cdResearchMap = initMapToZero(issues);
+		countErrorByIssue(listReviewInsideCdUT,"REVIEW_PROJECT","影響調査", cdResearchMap);
+		
 		//count cd error by issue
 		Map<String,Integer> cdErrorMap = initMapToZero(issues);
 		countErrorByIssue(listReviewInsideCdUT,"REVIEW_PROJECT","開発", cdErrorMap);
@@ -265,7 +267,7 @@ public class CheckFile {
 		Map<String,Integer> stErrorSecondMap = initMapToZero(issues);
 		countErrorByIssue(listReviewInsideST,"REVIEW_STEP","二次RV", stErrorSecondMap);
 
-		Map<String,Integer> stErrorTotalMap = new HashMap<String, Integer>();
+		Map<String,Integer> stErrorTotalMap = initMapToZero(issues);
 		
 		for(Issue issue:issues){
 			int total = stErrorFirstMap.get(issue.getId()).intValue() + stErrorSecondMap.get(issue.getId()).intValue();
@@ -280,16 +282,32 @@ public class CheckFile {
 		Map<String,Integer> stErrorOutSTMap = initMapToZero(issues);
 		countErrorByIssue(listReviewOutSideST,"REVIEW_PROJECT","結合テスト", stErrorOutSTMap);
 		
+		int errSTInsideSum = 0;
+		int errSTOutsideSum = 0;
+		
+		int stCaseSum = 0;
 		for(String issueId:stErrorTotalMap.keySet()){
-			System.out.println(issueId +" 指摘数 CD: "+ cdErrorMap.get(issueId).intValue() +
+			errSTInsideSum += stErrorTotalMap.get(issueId).intValue();
+			errSTOutsideSum += stErrorOutSTMap.get(issueId).intValue();
+			
+			stCaseSum += caseCountMap.get(issueId);
+			System.out.println(issueId +" 指摘数 影響調査: "+ cdResearchMap.get(issueId).intValue() +
+					" CD: "+ cdErrorMap.get(issueId).intValue() +
 					" UT: "+ utErrorMap.get(issueId).intValue() +
-					" ST一次: "+ stErrorFirstMap.get(issueId).intValue() + 
-					" ST二次: "+ stErrorSecondMap.get(issueId).intValue() +
-					" ST合計: "+ stErrorTotalMap.get(issueId).intValue() +
-					" ST外部: "+ stErrorOutSTMap.get(issueId).intValue() 
+//					" ST一次: "+ stErrorFirstMap.get(issueId).intValue() + 
+//					" ST二次: "+ stErrorSecondMap.get(issueId).intValue() +
+//					" ST内部合計: "+ stErrorTotalMap.get(issueId).intValue() +
+					" ST内部密度: "+ getReviewErrorPercent(stErrorTotalMap.get(issueId).intValue(),caseCountMap.get(issueId)) +
+					" ST外部密度: "+ getReviewErrorPercent(stErrorOutSTMap.get(issueId).intValue() ,caseCountMap.get(issueId))
 					);
 		}
+		System.out.println("ST内部密度(平均): "+ getReviewErrorPercent(errSTInsideSum,stCaseSum));
+		System.out.println("ST外部密度(平均): "+ getReviewErrorPercent(errSTOutsideSum,stCaseSum));
 		
+	}
+	
+	private static String getReviewErrorPercent(int errors,int caseNums){
+		return String.valueOf((int)(errors*1.0/caseNums*10000)*1.0/100) + "件/100ケース";
 	}
 	
 	private static Map<String,Integer> initMapToZero(Issue[] issues){
