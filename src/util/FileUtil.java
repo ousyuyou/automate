@@ -168,6 +168,11 @@ public class FileUtil {
 			if(repeatKeys.contains(f.getName())){
 				map.remove(f.getName());
 				String absolutePath = f.getAbsolutePath();
+				//rls branchで資材一覧とマッチするため、RELEASEを除く
+				absolutePath = absolutePath.replace("FMS-CORE-RELEASE", "FMS-CORE");
+				absolutePath = absolutePath.replace("FMS-IF-RELEASE", "FMS-IF");
+				absolutePath = absolutePath.replace("MPS_RELEASE", "MPS");
+				
 				if(absolutePath.indexOf("\\FMS-CORE") >= 0){
 					//例：311.xmlを/FMS-CORE/conf/settings/formula/expense/311.xmlに置き換える
 					absolutePath = setMatchKey(absolutePath,"/FMS-CORE");
@@ -186,6 +191,9 @@ public class FileUtil {
 	}
 	
 	private static String setMatchKey(String absolutePath,String findKey){
+		/** convert x:\xxx\xxx\xxx\xxx\FMS-CORE\conf\settings\formula\expense
+		 *  to \FMS-CORE\conf\settings\formula\expense
+		*/
 		String path = absolutePath.replace("\\", "/");
 		path = path.substring(path.indexOf(findKey));
 		

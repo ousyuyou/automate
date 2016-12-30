@@ -499,7 +499,7 @@ public class CheckFile {
 		// FileUtil.listSubDirectorys(new File(path6), arrDirectory);
 		// FileUtil.listSubDirectorys(new File(path7), arrDirectory);
 
-		Map<String, Integer> caseCountMap = new HashMap<String, Integer>();
+		Map<String, Integer> caseCountMap = initMapToZero(issues);
 		// issue_id + funciton_name
 		for (Issue issue : issues) {
 			int caseSum = 0;
