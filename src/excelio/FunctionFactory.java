@@ -52,7 +52,8 @@ public class FunctionFactory {
 	}
 
 	public Map<String,Function> readFunctionsFromExcel(String excelFilePath) throws IOException{
-		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(excelFilePath, 0, columnNameMap, "(compareTableID! |inputTable! |outputTable! )&taisyo=Åõ",0);
+		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(excelFilePath, 0, 
+				columnNameMap, "(compareTableID! |inputTable! |outputTable! )&taisyo=Åõ",0,null);
 		
 		try{
 			LineData lineDataBean = null;

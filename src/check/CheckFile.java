@@ -241,7 +241,7 @@ public class CheckFile {
 		//cd~ut
 		Map<String, String>[] listReviewInsideCdUT = ExcelUtil
 				.readContentFromExcelMult(filePath, 0, columnNameMapReviewList,
-						"CRITICIZE_KBN!確認", 2);
+						"CRITICIZE_KBN!確認", 2,null);
 		
 		//count cd error by issue
 		Map<String,Integer> cdResearchMap = initMapToZero(issues);
@@ -258,7 +258,7 @@ public class CheckFile {
 		//st
 		Map<String, String>[] listReviewInsideST = ExcelUtil
 				.readContentFromExcelMult(filePath, 1, columnNameMapReviewList,
-						"CRITICIZE_KBN!確認", 2);
+						"CRITICIZE_KBN!確認", 2,null);
 		
 		Map<String,Integer> stErrorFirstMap = initMapToZero(issues);
 		
@@ -277,7 +277,7 @@ public class CheckFile {
 		String filePathOut = config.getPropertyValue("review","review_record_file_outside");
 		SVNUtil.updateSvnByTortoiseSvn(filePathOut,svnInstallPath);
 		Map<String, String>[] listReviewOutSideST = ExcelUtil.readContentFromExcelMult(filePathOut,
-				0, columnNameMapReviewList,"CRITICIZE_KBN!確認", 1);
+				0, columnNameMapReviewList,"CRITICIZE_KBN!確認", 1,null);
 		
 		Map<String,Integer> stErrorOutSTMap = initMapToZero(issues);
 		countErrorByIssue(listReviewOutSideST,"REVIEW_PROJECT","結合テスト", stErrorOutSTMap);
@@ -840,7 +840,7 @@ public class CheckFile {
 					try {
 						Map<String, String>[] modules = ExcelUtil
 								.readContentFromExcelMult(strPaths[j], 0,
-										listColNames, "MODULE_ID! ", 1);
+										listColNames, "MODULE_ID! ", 1,null);
 						for (Map<String, String> map : modules) {
 							IssueModule module = new IssueModule();
 							module.setIssueID(strTarget[i]);
@@ -859,7 +859,7 @@ public class CheckFile {
 						// TODO
 						Map<String, String>[] functions = ExcelUtil
 								.readContentFromExcelMult(strPaths[j], 1,
-										listColNames, "FUNCTION_NAME! ", 1);
+										listColNames, "FUNCTION_NAME! ", 1,null);
 						// IssueFunction function = null;
 						String functionName = null;
 						for (Map<String, String> map : functions) {
@@ -925,7 +925,7 @@ public class CheckFile {
 		// listName.put("release_status", "I");
 
 		Map<String, String>[] listKadai1 = ExcelUtil.readContentFromExcelMult(
-				kadaiListFile1, 0, listName, "no! &release_status!リリース済", 0);
+				kadaiListFile1, 0, listName, "no! &release_status!リリース済", 0,null);
 
 		HashSet<String> issueNoSet = new HashSet<String>();
 		for (Issue issue : issues) {
@@ -967,7 +967,7 @@ public class CheckFile {
 
 		Map<String, String>[] changeList = ExcelUtil.readContentFromExcelMult(
 				changeListFile, 0, listColNames,
-				"releaseStatus= |releaseStatus=未リリース&no! ", 0);
+				"releaseStatus= |releaseStatus=未リリース&no! ", 0,null);
 
 		// mantis list
 		Map<String, String> mantisColNames = new HashMap<String, String>();
@@ -977,7 +977,7 @@ public class CheckFile {
 
 		Map<String, String>[] mantisList = ExcelUtil.readContentFromExcelMult(
 				mantisListFile, 0, mantisColNames,
-				"releaseStatus= |releaseStatus=未リリース&no! ", 0);
+				"releaseStatus= |releaseStatus=未リリース&no! ", 0,null);
 
 		HashSet<String> issueNoSet = new HashSet<String>();
 		for (Issue issue : issues) {
@@ -1074,7 +1074,7 @@ public class CheckFile {
 		// read base info
 		Map<String, String>[] mapTarget = ExcelUtil.readContentFromExcelMult(
 				configListFile, 0, columnNameMapIssueList,
-				issueListFilterPattern, 0);// sheet 0
+				issueListFilterPattern, 0,null);// sheet 0
 
 		Issue[] issues = new Issue[mapTarget.length];
 		for (int i = 0; i < mapTarget.length; i++) {
@@ -1128,7 +1128,7 @@ public class CheckFile {
 
 		Map<String, String>[] mapTarget = ExcelUtil.readContentFromExcelMult(
 				moduleListFile, 1, columnNameMapModuleList,
-				"RELEASE_STATUS!リリース不要", 0);// sheet 1
+				"RELEASE_STATUS!リリース不要", 0,null);// sheet 1
 
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for (Issue issue : issues) {
@@ -1162,7 +1162,7 @@ public class CheckFile {
 		}
 
 		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile, 2,
-				columnNameMapCommonModuleList, "RELEASE_STATUS!リリース不要", 0);// sheet
+				columnNameMapCommonModuleList, "RELEASE_STATUS!リリース不要", 0,null);// sheet
 																			// 2
 		for (int i = 0; i < mapTarget.length; i++) {
 			String issueID = mapTarget[i].get(ISSUE_ID);

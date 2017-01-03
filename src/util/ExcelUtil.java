@@ -1,10 +1,12 @@
 package util;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -29,10 +31,11 @@ public class ExcelUtil {
 	private static HashMap<String,Integer> map = new HashMap<String,Integer>();
 	private static int index = 0;
 	
+	public static String WRITE_KEY = "$WRITE_KEY$";
+	private static final String ISSUE_ID = "ISSUE_ID";
+
 	public static void main(String[] args) throws IOException{
 	}
-	
-
 	
 	/**
 	 * 
@@ -145,7 +148,7 @@ public class ExcelUtil {
 	 * @throws IOException
 	 */
 	public static Map<String, String>[] readContentFromExcelMult(String fileName,int sheetNo,Map<String,String> destColNames,
-			String columnNameFilterExpress,int startRow) throws IOException{
+			String columnNameFilterExpress,int startRow,HashSet<String> htIssueForWrite) throws IOException{
 		ArrayList<TreeMap<String,String>> arrayTarget = new ArrayList<TreeMap<String,String>>();
 		FileInputStream fileIn = null;
 		
@@ -153,6 +156,7 @@ public class ExcelUtil {
 		try{
 			fileIn = new FileInputStream(fileName);
 	        Workbook wb = getWorkBookByExcelPath(fileName);
+
 	        Sheet sheet = wb.getSheetAt(sheetNo);
 	        
 	        //init
@@ -165,6 +169,7 @@ public class ExcelUtil {
 	        
 	        for(int i = startRow; i <= sheet.getLastRowNum();i++){
 	        	Row row = sheet.getRow(i);
+	        	
 	        	if(row == null)//bug fix,why null?
 	        		continue;
 	        	String calculateValue = "";
@@ -190,18 +195,34 @@ public class ExcelUtil {
 	        		TreeMap<String, String> map = new TreeMap<String, String>();
 	        		
 	        		for(String columnName:destColNames.keySet()){
-	        			map.put(columnName, getCellValue(row,destColIndexs.get(columnName).intValue()));
+	        			if(WRITE_KEY.equals(columnName)){//write the FILTER_EXPRESS_WRITE_KEY to excel
+//	        				do not read
+	        			} else {
+	        				map.put(columnName, getCellValue(row,destColIndexs.get(columnName).intValue()));
+	        			}
+	        		}
+	        		//for write
+	        		if(destColNames.containsKey(WRITE_KEY)){
+	        			String issueID = map.get(ISSUE_ID);
+	        			if(htIssueForWrite!= null && htIssueForWrite.contains(issueID)){
+	        				Cell cell = row.createCell(destColIndexs.get(WRITE_KEY).intValue());
+	        				cell.setCellValue(issueID);
+	        			}
 	        		}
 	        		
 	        		arrayTarget.add(map);
 	        	}
-	    		
-
 	        }
+	        fileIn.close();
+	        
+	        if(destColNames.containsKey(WRITE_KEY)){
+		        FileOutputStream out = new FileOutputStream(fileName);
+		        wb.write(out);
+		        out.close();
+	        }
+	        
 		} finally{
-			if(fileIn!=null){
-				fileIn.close();
-			}
+			//
 		}
 		Map[] mapArr = new TreeMap[arrayTarget.size()];
 		arrayTarget.toArray(mapArr);
@@ -238,6 +259,9 @@ public class ExcelUtil {
 	        for(int i = 0 ; i < sheetNos.length; i++){
 	        	Sheet sheet = wb.getSheetAt(sheetNos[i]);
 		        Row row = sheet.getRow(rowno);
+		        if(row == null){//blank row
+		        	continue;
+		        }
 		        values[i] = getCellValue(row,destColIndexs.get("value").intValue());
 	        }
 	        
@@ -330,9 +354,9 @@ public class ExcelUtil {
                 wb = new HSSFWorkbook(is);  
             }else if(".xlsx".equals(ext)){  
                 wb = new XSSFWorkbook(is);  
-            }else{  
+            } else {  
                 wb=null;  
-            }  
+            }
         	
         } catch(Exception ioe){
         	System.err.println(filepath);

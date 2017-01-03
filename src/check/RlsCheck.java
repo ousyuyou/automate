@@ -611,7 +611,7 @@ public class RlsCheck {
 		
 		//read base info
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(configListFile,0,
-				columnNameMapIssueList,issueListFilterPattern,0);//sheet 0
+				columnNameMapIssueList,issueListFilterPattern,0,null);//sheet 0
 		
 		Issue[] issues = new Issue[mapTarget.length];
 		for(int i = 0 ; i<mapTarget.length;i++){
@@ -637,7 +637,7 @@ public class RlsCheck {
 		SVNUtil.updateSvnByTortoiseSvn(moduleListFile, svnInstallPath);
 		
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
-				columnNameMapIkouModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 1
+				columnNameMapIkouModuleList,"RELEASE_STATUS!リリース不要",0,null);//sheet 1
 		
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for(Issue issue:issues){
@@ -693,7 +693,7 @@ public class RlsCheck {
 		SVNUtil.updateSvnByTortoiseSvn(moduleListFile, svnInstallPath);
 		
 		Map<String,String>[] mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,1,
-				columnNameMapModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 1
+				columnNameMapModuleList,"RELEASE_STATUS!リリース不要",0,null);//sheet 1
 		
 		HashMap<String, Issue> issueMap = new HashMap<String, Issue>();
 		for(Issue issue:issues){
@@ -727,7 +727,7 @@ public class RlsCheck {
 		}
 
 		mapTarget = ExcelUtil.readContentFromExcelMult(moduleListFile,2,
-				columnNameMapCommonModuleList,"RELEASE_STATUS!リリース不要",0);//sheet 2
+				columnNameMapCommonModuleList,"RELEASE_STATUS!リリース不要",0,null);//sheet 2
 		for(int i = 0 ; i<mapTarget.length;i++){
 			String issueID = mapTarget[i].get("ISSUE_ID");
 			
