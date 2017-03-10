@@ -144,7 +144,7 @@ public class ReviewCheckTool {
 	 */
 	public static void main(String[] args) throws IOException, SVNException {
 		// check scope
-		String checkScopeNotRelease = "(RELEASE_STATUS=統合済|RELEASE_STATUS=未リリース|RELEASE_STATUS=部分リリース済)";
+		String checkScopeNotRelease = "(RELEASE_STATUS=未リリース)";
 		// String checkScopeStep47 = "RELEASE_VERSION⊃FS_TS_LK_V3.20.9.B01";
 //		boolean checkScope = false;
 
@@ -329,7 +329,8 @@ public class ReviewCheckTool {
 			boolean readModuleInfo) throws IOException {
 		String configListFile = config.getPropertyValue("check",
 				"issue_list_file");
-		SVNUtil.updateSvnByTortoiseSvn(configListFile, svnInstallPath);
+		//SVNUtil.updateSvnByTortoiseSvn(configListFile, svnInstallPath);
+		
 		// read base info
 		Map<String, String>[] mapTarget = ExcelUtil.readContentFromExcelMult(
 				configListFile, 0, columnNameMapIssueList,
@@ -712,7 +713,8 @@ public class ReviewCheckTool {
 							+ " formatが正しくない,ケース数取得出来ない");
 
 					nume.printStackTrace();
-					throw new IOException(nume);
+					//continue
+					//throw new IOException(nume);
 				}
 			}
 		}

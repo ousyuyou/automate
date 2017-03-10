@@ -121,9 +121,9 @@ public class RlsCheck {
 	public static void main(String[] args) throws IOException{
 		System.out.println("Start...");
 		// check suritoukei
-		checkSuritoukei();
+//		checkSuritoukei();
 		//check ikou
-//		checkIkou();
+		checkIkou();
 		System.out.println("Finished");
 	}
 	

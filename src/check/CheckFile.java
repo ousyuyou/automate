@@ -115,10 +115,10 @@ public class CheckFile {
 		// delay comment
 		columnNameMapIssueList.put(DELAY_COMMENT, "AG");
 		// release status
-		columnNameMapIssueList.put(RELEASE_STATUS, "AH");
-		columnNameMapIssueList.put(IKOU_RESOURCE, "AO");
+		columnNameMapIssueList.put(RELEASE_STATUS, "AK");
+		columnNameMapIssueList.put(IKOU_RESOURCE, "AR");
 		// release version
-		columnNameMapIssueList.put(RELEASE_VERSION, "AJ");
+		columnNameMapIssueList.put(RELEASE_VERSION, "AM");
 	}
 	/**
 	 * module list,source
@@ -963,7 +963,7 @@ public class CheckFile {
 		// change list
 		Map<String, String> listColNames = new HashMap<String, String>();
 		listColNames.put("no", "A");
-		listColNames.put("releaseStatus", "O");
+		listColNames.put("releaseStatus", "I");
 
 		Map<String, String>[] changeList = ExcelUtil.readContentFromExcelMult(
 				changeListFile, 0, listColNames,
